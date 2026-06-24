@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="https://images-wixmp-ed30a86b8c4ca887773594c2.wixmp.com/f/71fbb00b-be92-4757-8791-0aaae3cc055d/dezzghw-df2c130c-2594-4a3d-bb8f-966a19b62b1b.png?token=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ1cm46YXBwOjdlMGQxODg5ODIyNjQzNzNhNWYwZDQxNWVhMGQyNmUwIiwiaXNzIjoidXJuOmFwcDo3ZTBkMTg4OTgyMjY0MzczYTVmMGQ0MTVlYTBkMjZlMCIsIm9iaiI6W1t7InBhdGgiOiIvZi83MWZiYjAwYi1iZTkyLTQ3NTctODc5MS0wYWFhZTNjYzA1NWQvZGV6emdody1kZjJjMTMwYy0yNTk0LTRhM2QtYmI4Zi05NjZhMTliNjJiMWIucG5nIn1dXSwiYXVkIjpbInVybjpzZXJ2aWNlOmZpbGUuZG93bmxvYWQiXX0.Iqwxwq7r6CKQgL9hS8BYj80KN4t3KeRKaccn4XWYgvU" alt="Megumin" width="300" />
+  <img src="https://i.ibb.co/hxvV5kjn/Cm.png" alt="Megumin" width="300" />
   
   <h1>💖 Tsun Bot</h1>
   <p><i>It's not like I wanted you to host me or anything, baka!</i></p>
@@ -12,7 +12,7 @@ Listen closely, idiot, because I'm only going to say this once. You need to set 
 <br/>
 
 <div align="center">
-  <img src="https://p.kindpng.com/picc/s/123-1237346_transparent-megumin-png-png-download.png" alt="Megumin Smug" width="150" />
+  <img src="https://i.ibb.co/FqDbBcZq/Dm.png" alt="Megumin Smug" width="150" />
 </div>
 
 ## Step 1: Getting the Boring Stuff
@@ -53,7 +53,7 @@ To invite me to your server, go to **OAuth2 > URL Generator**. Check the `bot` b
 <br/>
 
 <div align="center">
-  <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQvkG2Dk3vu1EAzSkub1MIcM6DMkcfSecD9bQeuPqmOcO6atMfb4MtE8kQ&s=10" alt="Megumin Pout" width="150" />
+  <img src="https://i.ibb.co/KpbbS35s/Am.png" alt="Megumin Pout" width="150" />
 </div>
 
 ## Step 3: MongoDB Database
@@ -93,7 +93,7 @@ If you want me to process user grids and duel images without Discord yelling at 
 <br/>
 
 <div align="center">
-  <img src="https://www.pngitem.com/pimgs/m/123-1237156_megumin-png-transparent-png.png" alt="Megumin Magic" width="200" />
+  <img src="https://i.ibb.co/MxjKPDh8/Bm.png" alt="Megumin Magic" width="200" />
 </div>
 
 ## Step 6: Setting up the Web Dashboard
