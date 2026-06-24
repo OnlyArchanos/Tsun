@@ -1,161 +1,130 @@
 <div align="center">
+  <img src="https://images-wixmp-ed30a86b8c4ca887773594c2.wixmp.com/f/71fbb00b-be92-4757-8791-0aaae3cc055d/dezzghw-df2c130c-2594-4a3d-bb8f-966a19b62b1b.png?token=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ1cm46YXBwOjdlMGQxODg5ODIyNjQzNzNhNWYwZDQxNWVhMGQyNmUwIiwiaXNzIjoidXJuOmFwcDo3ZTBkMTg4OTgyMjY0MzczYTVmMGQ0MTVlYTBkMjZlMCIsIm9iaiI6W1t7InBhdGgiOiIvZi83MWZiYjAwYi1iZTkyLTQ3NTctODc5MS0wYWFhZTNjYzA1NWQvZGV6emdody1kZjJjMTMwYy0yNTk0LTRhM2QtYmI4Zi05NjZhMTliNjJiMWIucG5nIn1dXSwiYXVkIjpbInVybjpzZXJ2aWNlOmZpbGUuZG93bmxvYWQiXX0.Iqwxwq7r6CKQgL9hS8BYj80KN4t3KeRKaccn4XWYgvU" alt="Megumin" width="300" />
+  
   <h1>💖 Tsun Bot</h1>
-  <p><i>The ultimate tsundere economy, battle, and slavery bot for Discord!</i></p>
+  <p><i>It's not like I wanted you to host me or anything, baka!</i></p>
 </div>
 
-Welcome to Tsun Bot! This is a feature-rich, deeply integrated economy bot running on Node.js and MongoDB. It features a fully dynamic stock market, an RPG combat system, player-to-player slavery, and a snarky tsundere personality!
+Hmph! So you actually want to set me up? I guess I can explain it to you since you'd probably mess it up otherwise. Don't get the wrong idea! I'm only doing this so you don't break my code. 
 
-If you are a new user wanting to host this bot yourself, **read this guide very carefully**. 
+Listen closely, idiot, because I'm only going to say this once. You need to set up the Discord Bot *and* the Web Dashboard. Pay attention!
 
----
+<br/>
 
-## 🛠️ Complete Setup Guide
+<div align="center">
+  <img src="https://p.kindpng.com/picc/s/123-1237346_transparent-megumin-png-png-download.png" alt="Megumin Smug" width="150" />
+</div>
 
-This guide provides extremely detailed, step-by-step instructions for acquiring every API key and credential required in the `.env` file and getting the bot running on your machine.
+## Step 1: Getting the Boring Stuff
 
-### 1. Install Required Software
-Before touching the code, you need two pieces of software installed on your server or computer:
-1. **Node.js**: Download and install [Node.js (v18 or higher)](https://nodejs.org/). This is the engine that runs the bot.
-2. **Git**: Download and install [Git](https://git-scm.com/). This allows you to clone the code.
+First of all, you need Node.js and Git. If you don't have them, what are you even doing? 
+Go download Node.js (v18 or higher) and Git right now. 
 
-Once installed, open your terminal (or Command Prompt) and run:
+Once you have those, open your terminal and type this. Don't make any typos!
+
 ```bash
 git clone <your-repo-link>
 cd tsun
 npm install
 ```
-This will download all the necessary packages like `discord.js` and `mongoose`.
 
----
+Okay? Now your bot has its packages. We still need to do the web dashboard too, so type this:
 
-### 2. Discord Developer Portal (`DISCORD_TOKEN`)
-The Discord Token is the master key that allows the bot to connect to Discord and read/send messages.
+```bash
+cd web
+npm install
+cd ..
+```
 
-**URL to visit**: [Discord Developer Portal](https://discord.com/developers/applications)
+<br/>
 
-#### Step-by-Step Instructions:
-1. Log in with your Discord account.
-2. Click the **"New Application"** button in the top right corner.
-3. Enter a name for your bot (e.g., "Tsun"), accept the Terms of Service, and click **Create**.
-4. On the left sidebar, click on **Bot**.
-5. Look for the **Privileged Gateway Intents** section on this page.
-   - **WHAT TO DO (CRITICAL)**: You **MUST** tick the checkboxes to enable **Server Members Intent** and **Message Content Intent**. If you do not do this, the bot will silently fail to read commands and track user data.
-   - Click **Save Changes** at the bottom.
-6. Scroll back up to the **Token** section and click **Reset Token**, then click **Yes, do it!**.
-7. Click the **Copy** button.
-   - **WHAT NOT TO DO**: **Never** share this token with anyone, and **never** commit it to GitHub. If anyone gets this token, they have full control over your bot.
-8. Rename the `.env.example` file in your bot's folder to `.env`.
-9. Paste your token into the `.env` file under `DISCORD_TOKEN`.
+## Step 2: The Discord Portal (Pay Attention!)
 
-#### How to Invite the Bot to Your Server:
-1. Still on the Developer Portal, go to **OAuth2 -> URL Generator** on the left sidebar.
-2. Under "Scopes", tick the **`bot`** checkbox.
-3. Scroll down to "Bot Permissions" and tick **Administrator**.
-4. Copy the Generated URL at the very bottom of the page.
-5. Paste that URL into your web browser, select your server, and click Authorize.
+I need a body to control, obviously! Go to the [Discord Developer Portal](https://discord.com/developers/applications) and log in.
 
----
+1. Click **New Application** in the top right. Give me a decent name.
+2. Go to the **Bot** tab on the left.
+3. Scroll down to **Privileged Gateway Intents**. You **HAVE** to turn on **Server Members Intent** and **Message Content Intent**. If you forget this, I'll literally ignore everyone. Your fault! Save the changes.
+4. Go up to the **Token** section, click **Reset Token**, and copy the long password. **DO NOT SHOW THIS TO ANYONE!** Are you crazy? If someone steals it, they steal me!
+5. Now, go into my folder, find `.env.example`, rename it to `.env`, and paste that token next to `DISCORD_TOKEN=`.
 
-### 3. MongoDB (`MONGO_URI`)
-The bot uses MongoDB to save user data, economy balances, and stock history. We will use MongoDB Atlas for a free cloud database.
+To invite me to your server, go to **OAuth2 > URL Generator**. Check the `bot` box, then check `Administrator` at the bottom. Copy the link, paste it in your browser, and add me to your server. 
 
-**URL to visit**: [MongoDB Atlas](https://www.mongodb.com/cloud/atlas/register)
+<br/>
 
-#### Step-by-Step Instructions:
-1. Sign up for a free account and create a new Organization/Project if prompted.
-2. Click **Build a Database** or **Create a Cluster**.
-3. Select the **M0 Free** tier. Choose a cloud provider (AWS/GCP/Azure) and the region geographically closest to where your bot will be hosted. Click **Create**.
-4. **Security Quickstart**:
-   - **Authentication**: Create a Database User. Choose a username (e.g., `tsun_admin`) and click **Autogenerate Secure Password** (or type your own). 
-   - **WHAT TO DO**: Copy this password immediately and save it somewhere safe; you will need it in a moment. Click **Create User**.
-   - **Network Access**: Under "Where would you like to connect from?", select **My Local Environment**. In the IP Address field, enter `0.0.0.0/0` (which means "Allow Access from Anywhere"). This ensures your bot can connect regardless of where you host it. Click **Add Entry**.
-5. Click **Finish and Close**, then go to your Database dashboard.
-6. Click the **Connect** button next to your cluster.
-7. Choose **Drivers** (Node.js).
-8. Copy the connection string provided. It will look like this: `mongodb+srv://tsun_admin:<password>@cluster0.abcde.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0`
-9. **WHAT TO DO**: 
-   - Paste the string into your `.env` file as `MONGO_URI`.
-   - Replace `<password>` with the password you generated in Step 4.
-   - Insert a database name immediately before the `?`. For example: `...mongodb.net/TsunDatabase?retryWrites...`
+<div align="center">
+  <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQvkG2Dk3vu1EAzSkub1MIcM6DMkcfSecD9bQeuPqmOcO6atMfb4MtE8kQ&s=10" alt="Megumin Pout" width="150" />
+</div>
 
----
+## Step 3: MongoDB Database
 
-### 4. Cloudinary (Images)
-Cloudinary is used by the bot to compress and store user grids and generated images so Discord doesn't block large file uploads.
+I need somewhere to store all the economy data and stocks. We're using MongoDB Atlas because it's free. 
 
-**URL to visit**: [Cloudinary Registration](https://cloudinary.com/users/register_free)
+1. Go to [MongoDB Atlas](https://www.mongodb.com/cloud/atlas/register) and sign up.
+2. Create a new cluster and pick the **M0 Free** one. 
+3. Create a Database User. Pick a username and password. **WRITE THE PASSWORD DOWN**, idiot!
+4. Under Network Access, choose "Allow Access from Anywhere" or type `0.0.0.0/0`.
+5. Go to your Database, click **Connect**, and choose **Drivers** (Node.js).
+6. Copy the connection string. It looks like `mongodb+srv://username:password@cluster...`
+7. Put it in your `.env` file next to `MONGO_URI=`. Don't forget to replace `<password>` with the password you literally just made.
 
-#### Step-by-Step Instructions:
-1. Sign up for a free account.
-2. Once logged in, navigate to your **Dashboard** (usually under Programmable Media -> Dashboard).
-3. At the top of the dashboard, you will see your **Product Environment Credentials**.
-4. **WHAT TO DO**:
-   - Click the copy icon next to **Cloud Name** and paste it into `CLOUDINARY_CLOUD_NAME`.
-   - Click the copy icon next to **API Key** and paste it into `CLOUDINARY_API_KEY`.
-   - Click the copy icon next to **API Secret** and paste it into `CLOUDINARY_API_SECRET`.
-5. **WHAT NOT TO DO**: Treat your API Secret like a password. Do not share it.
+<br/>
 
----
+## Step 4: Cloudinary (For Images)
 
-### 5. OpenRouter API (`OPENROUTER_API_KEY`)
-OpenRouter acts as a proxy to access various AI models for the bot's conversational personality.
+If you want me to process user grids and duel images without Discord yelling at me for file sizes, you need this.
 
-**URL to visit**: [OpenRouter](https://openrouter.ai/)
+1. Go to [Cloudinary](https://cloudinary.com/users/register_free) and sign up.
+2. Look at your Dashboard.
+3. Copy your **Cloud Name**, **API Key**, and **API Secret**.
+4. Put them in the `.env` file under `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, and `CLOUDINARY_API_SECRET`.
 
-#### Step-by-Step Instructions:
-1. Sign in (you can use your Discord or Google account).
-2. Click on your profile in the top right and go to **Keys**.
-3. Click the **Create Key** button. Name it "Tsun Bot".
-4. A popup will appear with your API Key (starting with `sk-or-v1-`).
-5. **WHAT TO DO**: Click copy and paste it into `OPENROUTER_API_KEY` in your `.env` file. You will never be able to see this key again once you close the popup.
+<br/>
 
----
+## Step 5: MyAnimeList API
 
-### 6. Pollinations API (`POLLINATIONS_API_KEY`)
-Used for generating images based on text prompts.
+1. Go to [MyAnimeList API Config](https://myanimelist.net/apiconfig) and log in.
+2. Click **Create ID**.
+3. App Name: Tsun Bot
+4. App Type: Hobbyist
+5. Redirect URI: `http://localhost`
+6. Click Submit, copy the **Client ID**, and put it in your `.env` file as `MAL_CLIENT_ID`. 
 
-**URL to visit**: [Pollinations.ai](https://pollinations.ai/)
+<br/>
 
-#### Step-by-Step Instructions:
-1. Pollinations is uniquely designed to often work *without* an API key for basic public endpoints. 
-2. **WHAT TO DO**: If you do not have a paid key, you can leave `POLLINATIONS_API_KEY=` blank in your `.env` file.
+<div align="center">
+  <img src="https://www.pngitem.com/pimgs/m/123-1237156_megumin-png-transparent-png.png" alt="Megumin Magic" width="200" />
+</div>
 
----
+## Step 6: Setting up the Web Dashboard
 
-### 7. MyAnimeList API (`MAL_CLIENT_ID`)
-Used to fetch anime and manga data directly from MyAnimeList.
+You thought we were done? Hah! You still have to configure my web interface! 
 
-**URL to visit**: [MyAnimeList API Config](https://myanimelist.net/apiconfig)
+1. Go into the `web` folder.
+2. Copy `.env.local.example` and rename it to `.env.local`.
+3. Open it up. You need to fill these out:
+   * `MONGODB_URI`: Put the EXACT same MongoDB connection string here from Step 3.
+   * `AUTH_SECRET`: Mash your keyboard or use a generator to make a really long random password here. It secures the logins.
+   * `DISCORD_CLIENT_ID`: Go back to the Discord Developer Portal (General Information page) and copy your Application ID.
+   * `DISCORD_CLIENT_SECRET`: Go to the OAuth2 page on the Discord portal and reset your Client Secret to get a new one. Paste it here.
+   * `AUTH_URL`: Leave it as `http://localhost:3000` for now. If you put it on Vercel later, change it to your actual website link!
 
-#### Step-by-Step Instructions:
-1. Log into your MyAnimeList account.
-2. Go to the API configuration page and agree to developer terms.
-3. Click the **Create ID** button.
-4. Fill out the application form:
-   - **App Name**: Tsun Bot
-   - **App Type**: Select "Hobbyist" or "Other".
-   - **Redirect URI**: Enter `http://localhost`.
-5. Click **Submit**.
-6. **WHAT TO DO**: Look for the **Client ID** (a long string of numbers and letters). Copy this and paste it into `MAL_CLIENT_ID`.
-7. **WHAT NOT TO DO**: Ignore the Client Secret.
+<br/>
 
----
+## Step 7: Final Config and Launch
 
-### 8. Final Configuration & Launch!
+Before you even think about starting me up, open `config.js` in the main folder. Look at the `ROLES`. You actually need to go into your Discord Server Settings and create all those roles with the EXACT same spelling. If you don't, I'm going to crash and complain, and it will be your fault.
 
-Now that your `.env` file is fully loaded with API keys, you need to configure the bot's internal settings:
+Okay, everything is finally ready. 
 
-1. **Open `config.js` in a code editor.**
-2. Scroll to the `ROLES` object. The bot heavily relies on assigning Discord roles for prestige ranks, custom titles, and the `MEMBER` role.
-3. **Important**: Go to your Discord server's Server Settings -> Roles, and ensure every role listed in `config.js` exists exactly as spelled. 
-   *For example, if `config.ROLES.MEMBER` is `"member"`, create a role called "member" in your Discord server.*
-4. Adjust any economy values in `config.js` (like `DEFAULT_COINS` or `WEEKLY_GOAL`) to your liking.
-
-**Start the Bot:**
-In your terminal, run:
+To start the bot, open a terminal in the main folder and type:
 ```bash
 npm start
 ```
-You should see a message in the console saying `🔌 Connecting to Database...` followed by `🚀 Tsun is online as Tsun#1234`. 
 
-Congratulations, you have fully deployed your own open-source Tsun bot!
+To start the web dashboard, open another terminal, go into the `web` folder, and type:
+```bash
+npm run dev
+```
+
+If it says `🚀 Tsun is online`, then... I guess you did an okay job. B-but don't expect me to praise you or anything! Just go use the bot!
