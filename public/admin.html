@@ -1,0 +1,1544 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>TSUN ADMIN</title>
+    <style>
+      @import url("https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Space+Mono:wght@400;700&display=swap");
+      :root {
+        --bg-void: #030308;
+        --glass-1: rgba(255, 255, 255, 0.03);
+        --glass-2: rgba(255, 255, 255, 0.06);
+        --glass-3: rgba(255, 255, 255, 0.1);
+        --border-dim: rgba(255, 255, 255, 0.08);
+        --border-glow: rgba(139, 92, 246, 0.4);
+        --accent-purple: #8b5cf6;
+        --accent-cyan: #06b6d4;
+        --accent-pink: #ec4899;
+        --accent-green: #10b981;
+        --text-primary: rgba(255, 255, 255, 0.92);
+        --text-secondary: rgba(255, 255, 255, 0.45);
+        --text-dim: rgba(255, 255, 255, 0.2);
+        --danger: #ef4444;
+        --warning: #f59e0b;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        margin: 0;
+        min-height: 100%;
+        min-width: 1280px;
+        background: var(--bg-void);
+        color: var(--text-primary);
+        font-family: "DM Sans", sans-serif;
+      }
+      body {
+        position: relative;
+        overflow-x: hidden;
+      }
+      .bg {
+        position: fixed;
+        inset: 0;
+        z-index: 0;
+        pointer-events: none;
+        background:
+          radial-gradient(circle at 20% 20%, #0e1028 0%, var(--bg-void) 50%),
+          var(--bg-void);
+      }
+      .orb {
+        position: absolute;
+        width: 40vw;
+        height: 40vw;
+        border-radius: 999px;
+        filter: blur(60px);
+        opacity: 0.33;
+        mix-blend-mode: screen;
+      }
+      .orb1 {
+        background: radial-gradient(
+          circle,
+          rgba(139, 92, 246, 0.8),
+          rgba(139, 92, 246, 0)
+        );
+        top: -10vh;
+        left: -5vw;
+        animation: drift1 20s ease-in-out infinite alternate;
+      }
+      .orb2 {
+        background: radial-gradient(
+          circle,
+          rgba(6, 182, 212, 0.8),
+          rgba(6, 182, 212, 0)
+        );
+        top: 20vh;
+        right: -10vw;
+        animation: drift2 23s ease-in-out infinite alternate;
+      }
+      .orb3 {
+        background: radial-gradient(
+          circle,
+          rgba(37, 99, 235, 0.75),
+          rgba(37, 99, 235, 0)
+        );
+        bottom: -15vh;
+        left: 25vw;
+        animation: drift3 27s ease-in-out infinite alternate;
+      }
+      .noise {
+        position: absolute;
+        inset: 0;
+        opacity: 0.03;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120' viewBox='0 0 120 120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='120' height='120' filter='url(%23n)'/%3E%3C/svg%3E");
+      }
+      #app {
+        position: relative;
+        z-index: 2;
+      }
+      .glass {
+        background: var(--glass-1);
+        backdrop-filter: blur(20px) saturate(180%);
+        border: 1px solid var(--border-dim);
+        border-radius: 16px;
+        box-shadow:
+          0 0 0 1px rgba(255, 255, 255, 0.02),
+          inset 0 1px 0 rgba(255, 255, 255, 0.05),
+          0 20px 40px rgba(0, 0, 0, 0.4);
+        transition: 0.2s;
+      }
+      .glass:hover {
+        background: var(--glass-2);
+        border-color: var(--border-glow);
+        box-shadow:
+          0 0 20px rgba(139, 92, 246, 0.15),
+          inset 0 1px 0 rgba(255, 255, 255, 0.05),
+          0 20px 40px rgba(0, 0, 0, 0.4);
+      }
+      .logo,
+      .mono {
+        font-family: "Space Mono", monospace;
+      }
+      .muted {
+        color: var(--text-secondary);
+      }
+      .dim {
+        color: var(--text-dim);
+      }
+      .input,
+      .select {
+        width: 100%;
+        border-radius: 12px;
+        border: 1px solid var(--border-dim);
+        background: rgba(0, 0, 0, 0.35);
+        color: var(--text-primary);
+        padding: 10px 12px;
+        font:
+          13px "Space Mono",
+          monospace;
+        outline: 0;
+        transition: 0.2s;
+      }
+      .input:focus,
+      .select:focus {
+        border-color: var(--accent-purple);
+        box-shadow:
+          0 0 0 1px rgba(139, 92, 246, 0.4),
+          0 0 18px rgba(139, 92, 246, 0.3);
+        animation: pulseFocus 0.9s ease;
+      }
+      .btn {
+        border: 1px solid var(--border-dim);
+        background: linear-gradient(
+          135deg,
+          rgba(139, 92, 246, 0.3),
+          rgba(6, 182, 212, 0.2)
+        );
+        color: var(--text-primary);
+        border-radius: 12px;
+        padding: 10px 14px;
+        font:
+          13px "Space Mono",
+          monospace;
+        cursor: pointer;
+        transition: 0.14s;
+      }
+      .btn:hover {
+        transform: scale(1.02);
+        border-color: var(--border-glow);
+        box-shadow: 0 0 18px rgba(139, 92, 246, 0.3);
+      }
+      .btn:active {
+        transform: scale(0.98);
+      }
+      .btn.secondary {
+        background: rgba(255, 255, 255, 0.04);
+      }
+      .btn.danger {
+        background: rgba(239, 68, 68, 0.25);
+        border-color: rgba(239, 68, 68, 0.4);
+      }
+      .login {
+        min-height: 100vh;
+        display: grid;
+        place-items: center;
+        padding: 40px;
+      }
+      .login-card {
+        width: 420px;
+        padding: 30px;
+      }
+      .layout {
+        display: flex;
+        min-height: 100vh;
+      }
+      .sidebar {
+        width: 220px;
+        position: fixed;
+        inset: 0 auto 0 0;
+        border-right: 1px solid var(--border-dim);
+        padding: 22px 14px;
+        background: rgba(2, 2, 8, 0.78);
+        backdrop-filter: blur(24px);
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+      }
+      .sidebar h1 {
+        margin: 0 0 18px;
+        font-size: 22px;
+        text-shadow: 0 0 16px rgba(139, 92, 246, 0.55);
+      }
+      .nav {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+      .nav-item {
+        color: var(--text-secondary);
+        text-decoration: none;
+        display: flex;
+        gap: 9px;
+        padding: 10px;
+        border-left: 2px solid transparent;
+        border-radius: 10px;
+        font:
+          13px "Space Mono",
+          monospace;
+        opacity: 0;
+        transform: translateY(8px);
+        animation: navFadeUp 0.35s ease forwards;
+      }
+      .nav-item.active {
+        color: var(--text-primary);
+        border-left-color: var(--accent-purple);
+        background: rgba(139, 92, 246, 0.14);
+      }
+      .main {
+        margin-left: 220px;
+        width: calc(100% - 220px);
+        padding: 24px;
+      }
+      .top-title {
+        margin: 0 0 14px;
+        font:
+          24px "Space Mono",
+          monospace;
+      }
+      .section-enter {
+        animation: sectionIn 0.2s ease;
+      }
+      .section-exit {
+        animation: sectionOut 0.12s ease forwards;
+      }
+      .cards {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(240px, 1fr));
+        gap: 14px;
+      }
+      .card {
+        padding: 14px;
+        display: grid;
+        gap: 8px;
+      }
+      .stat-value {
+        font:
+          24px "Space Mono",
+          monospace;
+      }
+      .progress {
+        height: 8px;
+        width: 100%;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.08);
+        overflow: hidden;
+      }
+      .progress-bar {
+        height: 100%;
+        background: linear-gradient(
+          90deg,
+          var(--accent-cyan),
+          var(--accent-purple)
+        );
+        transition: 0.4s;
+      }
+      .toolbar {
+        display: flex;
+        gap: 10px;
+        justify-content: space-between;
+        align-items: center;
+      }
+      .list {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(300px, 1fr));
+        gap: 12px;
+      }
+      .user-head {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+      }
+      .avatar {
+        width: 38px;
+        height: 38px;
+        border-radius: 999px;
+        display: grid;
+        place-items: center;
+        background: rgba(139, 92, 246, 0.3);
+        border: 1px solid rgba(139, 92, 246, 0.6);
+        font:
+          14px "Space Mono",
+          monospace;
+      }
+      .chips {
+        display: flex;
+        gap: 6px;
+        flex-wrap: wrap;
+      }
+      .chip {
+        border: 1px solid var(--border-dim);
+        background: rgba(255, 255, 255, 0.05);
+        border-radius: 999px;
+        padding: 4px 8px;
+        font-size: 11px;
+        color: var(--text-secondary);
+      }
+      .chip.cyan {
+        border-color: rgba(6, 182, 212, 0.5);
+        color: #67e8f9;
+      }
+      .chip.good {
+        border-color: rgba(16, 185, 129, 0.5);
+        color: #86efac;
+      }
+      .chip.bad {
+        border-color: rgba(239, 68, 68, 0.5);
+        color: #fca5a5;
+      }
+      .drawer {
+        position: fixed;
+        top: 0;
+        right: -780px;
+        width: 760px;
+        height: 100vh;
+        overflow: auto;
+        z-index: 30;
+        background: rgba(5, 5, 12, 0.96);
+        border-left: 1px solid var(--border-dim);
+        box-shadow: -20px 0 30px rgba(0, 0, 0, 0.5);
+        padding: 18px;
+        transition: right 0.3s ease;
+      }
+      .drawer.open {
+        right: 0;
+      }
+      .collapse {
+        margin: 12px 0;
+        overflow: hidden;
+        border-radius: 14px;
+      }
+      .collapse summary {
+        list-style: none;
+        cursor: pointer;
+        display: flex;
+        justify-content: space-between;
+        padding: 10px 12px;
+        font:
+          13px "Space Mono",
+          monospace;
+      }
+      .collapse summary::-webkit-details-marker {
+        display: none;
+      }
+      .collapse-body {
+        padding: 10px 12px 14px;
+        display: grid;
+        gap: 10px;
+      }
+      .row {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+      }
+      .space {
+        justify-content: space-between;
+      }
+      .field {
+        display: grid;
+        gap: 5px;
+      }
+      .tooltip {
+        width: 16px;
+        height: 16px;
+        border-radius: 999px;
+        border: 1px solid var(--border-dim);
+        display: inline-grid;
+        place-items: center;
+        font-size: 10px;
+        color: var(--text-secondary);
+        position: relative;
+        cursor: help;
+      }
+      .tooltip::after {
+        content: attr(data-tip);
+        position: absolute;
+        left: 20px;
+        top: 50%;
+        transform: translateY(-50%);
+        opacity: 0;
+        pointer-events: none;
+        width: 280px;
+        background: rgba(5, 5, 10, 0.95);
+        border: 1px solid var(--border-dim);
+        border-radius: 8px;
+        padding: 8px;
+        color: var(--text-secondary);
+        font-size: 11px;
+        transition: 0.15s;
+        z-index: 3;
+      }
+      .tooltip:hover::after {
+        opacity: 1;
+      }
+      .tabs {
+        display: flex;
+        gap: 8px;
+        margin-bottom: 8px;
+      }
+      .tab {
+        padding: 7px 10px;
+        border-radius: 999px;
+        border: 1px solid var(--border-dim);
+        font:
+          12px "Space Mono",
+          monospace;
+        color: var(--text-secondary);
+        background: rgba(255, 255, 255, 0.03);
+        cursor: pointer;
+      }
+      .tab.active {
+        color: var(--text-primary);
+        border-color: var(--border-glow);
+        background: rgba(139, 92, 246, 0.2);
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 13px;
+      }
+      th,
+      td {
+        border-bottom: 1px solid var(--border-dim);
+        padding: 10px 8px;
+        text-align: left;
+      }
+      th {
+        color: var(--text-secondary);
+        font:
+          12px "Space Mono",
+          monospace;
+      }
+      .modal-backdrop {
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.6);
+        display: grid;
+        place-items: center;
+        z-index: 40;
+      }
+      .modal {
+        width: min(760px, 90vw);
+        max-height: 85vh;
+        overflow: auto;
+        padding: 16px;
+      }
+      .empty {
+        padding: 24px;
+        text-align: center;
+        color: var(--text-dim);
+      }
+      .stagger {
+        opacity: 0;
+        transform: translateY(8px);
+        animation: cardIn 0.3s ease forwards;
+      }
+      .save-success {
+        animation: flashSuccess 0.3s ease;
+      }
+      .save-error {
+        animation: shakeError 0.4s ease;
+        border-color: rgba(239, 68, 68, 0.55) !important;
+      }
+      @keyframes navFadeUp {
+        from {
+          opacity: 0;
+          transform: translateY(8px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+      @keyframes sectionOut {
+        from {
+          opacity: 1;
+          transform: translateY(0);
+        }
+        to {
+          opacity: 0;
+          transform: translateY(-8px);
+        }
+      }
+      @keyframes sectionIn {
+        from {
+          opacity: 0;
+          transform: translateY(8px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+      @keyframes cardIn {
+        from {
+          opacity: 0;
+          transform: translateY(10px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+      @keyframes pulseFocus {
+        0% {
+          box-shadow: 0 0 0 0 rgba(139, 92, 246, 0.5);
+        }
+        100% {
+          box-shadow:
+            0 0 0 1px rgba(139, 92, 246, 0.4),
+            0 0 18px rgba(139, 92, 246, 0.3);
+        }
+      }
+      @keyframes flashSuccess {
+        0% {
+          background: rgba(16, 185, 129, 0.35);
+        }
+        100% {
+          background: transparent;
+        }
+      }
+      @keyframes shakeError {
+        0%,
+        100% {
+          transform: translateX(0);
+        }
+        16% {
+          transform: translateX(-6px);
+        }
+        32% {
+          transform: translateX(6px);
+        }
+        48% {
+          transform: translateX(-4px);
+        }
+        64% {
+          transform: translateX(4px);
+        }
+        80% {
+          transform: translateX(-2px);
+        }
+      }
+      @keyframes drift1 {
+        0% {
+          transform: translate(0, 0) scale(1);
+        }
+        25% {
+          transform: translate(8vw, 6vh) scale(1.05);
+        }
+        50% {
+          transform: translate(14vw, -3vh) scale(1.12);
+        }
+        75% {
+          transform: translate(4vw, 10vh) scale(0.98);
+        }
+        100% {
+          transform: translate(18vw, 4vh) scale(1.1);
+        }
+      }
+      @keyframes drift2 {
+        0% {
+          transform: translate(0, 0) scale(1);
+        }
+        30% {
+          transform: translate(-8vw, -6vh) scale(1.12);
+        }
+        60% {
+          transform: translate(-13vw, 8vh) scale(0.95);
+        }
+        100% {
+          transform: translate(-5vw, 14vh) scale(1.08);
+        }
+      }
+      @keyframes drift3 {
+        0% {
+          transform: translate(0, 0) scale(1);
+        }
+        20% {
+          transform: translate(10vw, -7vh) scale(1.05);
+        }
+        45% {
+          transform: translate(-4vw, -12vh) scale(0.9);
+        }
+        75% {
+          transform: translate(14vw, -2vh) scale(1.15);
+        }
+        100% {
+          transform: translate(-8vw, -10vh) scale(1.02);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="bg">
+      <div class="orb orb1"></div>
+      <div class="orb orb2"></div>
+      <div class="orb orb3"></div>
+      <div class="noise"></div>
+    </div>
+    <div id="app"></div>
+    <div id="modalRoot"></div>
+    <script>
+      const INITIAL_AUTH = __TSUN_ADMIN_AUTH__;
+      const navItems = [
+        { key: "overview", icon: "⬡", label: "Overview" },
+        { key: "users", icon: "◈", label: "Users" },
+        { key: "loans", icon: "⟠", label: "Loans" },
+        { key: "auctions", icon: "◎", label: "Auctions" },
+        { key: "stats", icon: "◉", label: "Server Stats" },
+        { key: "relationships", icon: "⌬", label: "Relationships" },
+        { key: "audit", icon: "◇", label: "Audit Log" },
+        { key: "guide", icon: "◈", label: "Guide" },
+      ];
+      const state = {
+        authenticated: !!INITIAL_AUTH,
+        section: "overview",
+        meta: null,
+        users: [],
+        usersPage: 1,
+        usersTotalPages: 1,
+        usersSearch: "",
+        loans: [],
+        loanFilter: "ALL",
+        auctions: [],
+        relationships: [],
+        relationshipFilter: "all",
+        audit: [],
+        clockTimer: null,
+        sectionTimer: null,
+        userEditorDraft: null,
+      };
+
+      const userSections = [
+        {
+          key: "economy",
+          title: "Economy",
+          fields: [
+            { path: "coins", type: "number" },
+            { path: "vaultCoins", type: "number" },
+            { path: "bounty", type: "number" },
+            { path: "nuggets", type: "number" },
+          ],
+        },
+        {
+          key: "progression",
+          title: "Progression",
+          fields: [
+            { path: "prestige", type: "number", tip: "0=None ... 7=Master" },
+            { path: "elo", type: "number" },
+            { path: "wins", type: "number" },
+            { path: "losses", type: "number" },
+            { path: "currentDuelStreak", type: "number" },
+            {
+              path: "nuggetDuelMilestone",
+              type: "number",
+              tip: "Should be multiple of 10.",
+            },
+          ],
+        },
+        {
+          key: "forge",
+          title: "Forge & Upgrades",
+          fields: [
+            { path: "nuggets", type: "number" },
+            {
+              path: "upgrades.walletTier",
+              type: "number",
+              tip: "+15M per tier",
+            },
+            { path: "upgrades.vaultTier", type: "number", tip: "+5M per tier" },
+            {
+              path: "goldenAmuletCount",
+              type: "number",
+              tip: "+0.5x per amulet",
+            },
+            { path: "titanVaultUsed", type: "boolean", tip: "2x vault cap" }
+          ],
+        },
+        {
+          key: "effects",
+          title: "Active Effects",
+          fields: [
+            { path: "bountyShieldExpiry", type: "timestamp" },
+            { path: "mediocrityExpiry", type: "timestamp" },
+            { path: "trashTasteExpiry", type: "timestamp" },
+            { path: "botBanExpiry", type: "timestamp" },
+            { path: "doubleDipActive", type: "boolean" },
+            { path: "isekaiDiscountActive", type: "boolean" },
+          ],
+        },
+        {
+          key: "slavery",
+          title: "Slavery",
+          fields: [
+            { path: "isSlave", type: "boolean" },
+            { path: "slaveOwner", type: "text", tip: "Owner userId" },
+            { path: "activeCarrot.amount", type: "number" },
+            { path: "activeCarrot.bonusPerHr", type: "number" },
+            { path: "activeCarrot.expiresAt", type: "timestamp" },
+            { path: "activeCarrot.ownerId", type: "text" },
+            { path: "carrotResistUsed", type: "boolean" },
+            { path: "resistExpiresAt", type: "timestamp" },
+          ],
+        },
+        {
+          key: "daily",
+          title: "Daily Streak",
+          fields: [
+            { path: "dailyStreak", type: "number" },
+            { path: "lastDailyClaim", type: "timestamp" },
+            { path: "longestDailyStreak", type: "number" },
+          ],
+        },
+        {
+          key: "gacha",
+          title: "Gacha",
+          fields: [
+            { path: "gachaPity.bronze", type: "number" },
+            { path: "gachaPity.silver", type: "number" },
+            { path: "gachaPity.gold", type: "number" },
+            { path: "gachaTotalSpent", type: "number" },
+          ],
+        },
+        {
+          key: "inventory",
+          title: "Inventory",
+          fields: [{ path: "inventory", type: "tags" }],
+        },
+        {
+          key: "misc",
+          title: "Misc",
+          fields: [
+            { path: "equippedTitle", type: "text" },
+            { path: "frameColor", type: "text" },
+            { path: "forcedNickname", type: "text" },
+            { path: "strippedRoles", type: "tags" },
+          ],
+        },
+      ];
+
+      const escapeHtml = (v) =>
+        String(v ?? "")
+          .replaceAll("&", "&amp;")
+          .replaceAll("<", "&lt;")
+          .replaceAll(">", "&gt;")
+          .replaceAll('"', "&quot;")
+          .replaceAll("'", "&#39;");
+      const fmtNum = (v) => Number(v || 0).toLocaleString("en-US");
+      const relTime = (ms) => {
+        if (!ms) return "N/A";
+        const d = Date.now() - ms;
+        if (d < 0) return "in future";
+        const m = Math.floor(d / 60000);
+        if (m < 1) return "just now";
+        if (m < 60) return `${m}m ago`;
+        const h = Math.floor(m / 60);
+        if (h < 24) return `${h}h ago`;
+        return `${Math.floor(h / 24)}d ago`;
+      };
+      const fmtTs = (ms) =>
+        !ms
+          ? "N/A"
+          : `${new Date(Number(ms)).toLocaleString()} (${relTime(Number(ms))})`;
+      const fmtAbsolute = (ms) =>
+        !ms
+          ? "N/A"
+          : new Date(Number(ms)).toLocaleString("en-US", {
+              month: "short",
+              day: "numeric",
+              year: "numeric",
+              hour: "2-digit",
+              minute: "2-digit",
+            });
+      const fmtAbsoluteWithCountdown = (ms) => {
+        const value = Number(ms || 0);
+        if (!value) return "N/A";
+        const diff = value - Date.now();
+        if (diff <= 0) return `${fmtAbsolute(value)} — ended`;
+        const h = Math.floor(diff / 3600000);
+        const m = Math.floor((diff % 3600000) / 60000);
+        const s = Math.floor((diff % 60000) / 1000);
+        return `${fmtAbsolute(value)} — ends in ${h}h ${m}m ${s}s`;
+      };
+      const toDt = (ms) => {
+        if (!ms) return "";
+        const d = new Date(Number(ms));
+        const p = (n) => String(n).padStart(2, "0");
+        return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`;
+      };
+      const fromDt = (v) => (v ? new Date(v).getTime() : 0);
+      const countdown = (ms) => {
+        const t = Number(ms || 0) - Date.now();
+        if (t <= 0) return "Expired";
+        return `Expires in ${Math.floor(t / 3600000)}h ${Math.floor((t % 3600000) / 60000)}m`;
+      };
+      const getByPath = (obj, p) => p.split(".").reduce((a, k) => a?.[k], obj);
+      const setByPath = (obj, p, v) => {
+        const k = p.split(".");
+        let r = obj;
+        for (let i = 0; i < k.length - 1; i++) {
+          if (typeof r[k[i]] !== "object" || r[k[i]] == null) r[k[i]] = {};
+          r = r[k[i]];
+        }
+        r[k[k.length - 1]] = v;
+      };
+
+      async function api(path, options = {}) {
+        const res = await fetch(path, {
+          credentials: "same-origin",
+          ...options,
+        });
+        if (res.status === 401) {
+          state.authenticated = false;
+          render();
+          return null;
+        }
+        if (!res.ok) throw new Error(await res.text());
+        return res.json();
+      }
+      function flashSuccess(el) {
+        el.classList.remove("save-success");
+        void el.offsetWidth;
+        el.classList.add("save-success");
+        setTimeout(() => el.classList.remove("save-success"), 350);
+      }
+      function flashError(el) {
+        el.classList.remove("save-error");
+        void el.offsetWidth;
+        el.classList.add("save-error");
+        setTimeout(() => el.classList.remove("save-error"), 450);
+      }
+      function countUp(el, target) {
+        const end = Number(target || 0);
+        const t0 = performance.now();
+        const step = (now) => {
+          const p = Math.min((now - t0) / 800, 1);
+          const e = 1 - Math.pow(1 - p, 3);
+          el.textContent = fmtNum(Math.floor(end * e));
+          if (p < 1) requestAnimationFrame(step);
+        };
+        requestAnimationFrame(step);
+      }
+      function extractErrorMessage(error, fallback = "Save failed") {
+        const raw = String(error?.message || "").trim();
+        if (!raw) return fallback;
+        try {
+          const parsed = JSON.parse(raw);
+          if (parsed && typeof parsed.error === "string" && parsed.error.trim())
+            return parsed.error.trim();
+        } catch {}
+        return raw.length > 180 ? `${raw.slice(0, 177)}...` : raw;
+      }
+
+      function openModal(html, bind) {
+        const r = document.getElementById("modalRoot");
+        r.innerHTML = `<div class="modal-backdrop">${html}</div>`;
+        r.querySelectorAll("[data-close-modal]").forEach((b) =>
+          b.addEventListener("click", closeModal),
+        );
+        if (bind) bind(r);
+      }
+      function closeModal() {
+        document.getElementById("modalRoot").innerHTML = "";
+      }
+      async function ensureMeta() {
+        if (!state.meta) state.meta = await api("/admin/api/meta");
+      }
+
+      function renderLogin() {
+        const err = new URLSearchParams(location.search).get("error") === "1";
+        document.getElementById("app").innerHTML =
+          `<div class="login"><form method="POST" action="/admin/login" class="login-card glass"><h1 class="logo" style="font-size:28px;margin:0 0 18px;text-shadow:0 0 14px rgba(139,92,246,.45)">TSUN ADMIN</h1><div class="muted" style="margin-bottom:16px">Owner-only dashboard access.</div>${err ? '<div class="glass" style="padding:8px 10px;border-color:rgba(239,68,68,.4);color:#fca5a5;margin-bottom:12px">Invalid password.</div>' : ""}<label for="pw" class="muted">Password</label><input id="pw" name="password" class="input" type="password" required><div style="height:10px"></div><button class="btn" type="submit">Enter Dashboard</button></form></div>`;
+      }
+
+      function updateClock() {
+        const n = document.getElementById("clock");
+        if (n) n.textContent = new Date().toLocaleString();
+      }
+      function renderShell() {
+        const nav = navItems
+          .map(
+            (n, i) =>
+              `<a href="#" class="nav-item ${state.section === n.key ? "active" : ""}" data-nav="${n.key}" style="animation-delay:${i * 60}ms"><span>${n.icon}</span><span>${n.label}</span></a>`,
+          )
+          .join("");
+        document.getElementById("app").innerHTML =
+          `<div class="layout"><aside class="sidebar"><div><h1 class="logo">TSUN ADMIN</h1><nav class="nav">${nav}</nav></div><div><div id="clock" class="mono muted" style="margin-bottom:8px"></div><div class="muted" style="margin-bottom:8px"><span style="display:inline-block;width:8px;height:8px;border-radius:999px;background:var(--accent-green);box-shadow:0 0 8px rgba(16,185,129,.8);margin-right:8px"></span>Logged in</div><a href="/admin/logout" class="btn secondary" style="display:block;text-decoration:none;text-align:center">Logout</a></div></aside><main class="main"><h2 class="top-title">${escapeHtml(navItems.find((n) => n.key === state.section)?.label || "")}</h2><div id="sectionHost"></div><aside id="drawer" class="drawer"></aside></main></div>`;
+        document.querySelectorAll("[data-nav]").forEach((el) =>
+          el.addEventListener("click", async (e) => {
+            e.preventDefault();
+            if (el.dataset.nav === state.section) return;
+            await switchSection(el.dataset.nav);
+          }),
+        );
+        updateClock();
+        clearInterval(state.clockTimer);
+        state.clockTimer = setInterval(updateClock, 1000);
+      }
+
+      async function switchSection(next) {
+        state.section = next;
+        document
+          .querySelectorAll("[data-nav]")
+          .forEach((n) => n.classList.toggle("active", n.dataset.nav === next));
+        const t = document.querySelector(".top-title");
+        if (t)
+          t.textContent = navItems.find((n) => n.key === next)?.label || "";
+        const host = document.getElementById("sectionHost");
+        host.classList.remove("section-enter");
+        host.classList.add("section-exit");
+        await new Promise((r) => setTimeout(r, 120));
+        host.classList.remove("section-exit");
+        host.innerHTML = '<div class="glass card muted">Loading...</div>';
+        await renderSection();
+        host.classList.add("section-enter");
+        setTimeout(() => host.classList.remove("section-enter"), 220);
+      }
+
+      async function renderSection() {
+        clearInterval(state.sectionTimer);
+        state.sectionTimer = null;
+        if (state.section === "overview") return renderOverview();
+        if (state.section === "users") return renderUsers();
+        if (state.section === "loans") return renderLoans();
+        if (state.section === "auctions") return renderAuctions();
+        if (state.section === "stats") return renderStats();
+        if (state.section === "relationships") return renderRelationships();
+        if (state.section === "audit") return renderAudit();
+        return renderGuide();
+      }
+    </script>
+    <script>
+      async function renderOverview() {
+        const host = document.getElementById("sectionHost");
+        const d = await api("/admin/api/overview");
+        if (!d || !host) return;
+        const goal = Number(d.weekly.weeklyGoal || 0),
+          count = Number(d.weekly.weeklyCoinCount || 0),
+          pct = goal > 0 ? Math.min(100, Math.round((count / goal) * 100)) : 0;
+        const cards = [
+          {
+            i: "👥",
+            l: "Total users",
+            v: d.totalUsers,
+            c: "var(--accent-cyan)",
+          },
+          {
+            i: "⟠",
+            l: "Active loans",
+            v: d.activeLoans.count,
+            x: `Total ${fmtNum(d.activeLoans.totalValue)}`,
+            c: "var(--accent-purple)",
+          },
+          {
+            i: "◎",
+            l: "Active auctions",
+            v: d.activeAuctions,
+            c: "var(--accent-pink)",
+          },
+          {
+            i: "⌬",
+            l: "Married couples",
+            v: d.marriedCouples,
+            c: "var(--accent-green)",
+          },
+          {
+            i: "◉",
+            l: "Weekly challenge",
+            v: `${pct}%`,
+            x: `${fmtNum(count)} / ${fmtNum(goal)}`,
+            p: pct,
+            c: "var(--accent-cyan)",
+          },
+          {
+            i: "◈",
+            l: "Nuggets in circulation",
+            v: d.totalNuggets,
+            c: "var(--warning)",
+          },
+          {
+            i: "💰",
+            l: "Richest user",
+            v: d.richestUser ? d.richestUser.coins : 0,
+            x: d.richestUser
+              ? `${d.richestUser.discordName} (@${d.richestUser.discordTag})`
+              : "N/A",
+            c: "var(--accent-green)",
+          },
+          {
+            i: "⚔",
+            l: "Highest ELO user",
+            v: d.highestEloUser ? d.highestEloUser.elo : 0,
+            x: d.highestEloUser
+              ? `${d.highestEloUser.discordName} (@${d.highestEloUser.discordTag})`
+              : "N/A",
+            c: "var(--accent-purple)",
+          },
+        ];
+        host.innerHTML = `<div class="cards">${cards.map((c, i) => `<article class="glass card stagger" style="animation-delay:${i * 40}ms"><div style="color:${c.c}">${c.i}</div><div class="stat-value mono" data-count="${Number(c.v) || 0}" data-raw="${c.v}">${typeof c.v === "string" ? escapeHtml(c.v) : "0"}</div><div class="muted">${escapeHtml(c.l)}</div>${c.x ? `<div class="muted">${escapeHtml(c.x)}</div>` : ""}${typeof c.p === "number" ? `<div class="progress"><div class="progress-bar" style="width:${c.p}%"></div></div>` : ""}</article>`).join("")}</div>`;
+        host.querySelectorAll("[data-count]").forEach((el) => {
+          if ((el.dataset.raw || "").endsWith("%")) return;
+          countUp(el, el.dataset.count);
+        });
+      }
+
+      function userEffects(u) {
+        const e = [];
+        const n = Date.now();
+        if (Number(u.bountyShieldExpiry || 0) > n) e.push("Bounty Shield");
+        if (Number(u.mediocrityExpiry || 0) > n) e.push("Mediocrity");
+        if (Number(u.trashTasteExpiry || 0) > n) e.push("Trash Curse");
+        if (Number(u.botBanExpiry || 0) > n) e.push("Bot Ban");
+        if (u.doubleDipActive) e.push("Double Dip");
+        if (u.isekaiDiscountActive) e.push("Isekai Discount");
+        return e;
+      }
+
+      async function loadUsers() {
+        try {
+          const d = await api(
+            `/admin/api/users?search=${encodeURIComponent(state.usersSearch)}&page=${state.usersPage}`,
+          );
+          if (!d) return;
+          state.users = d.users || [];
+          state.usersTotalPages = d.totalPages || 1;
+          renderUsersList();
+        } catch (err) {
+          const grid = document.getElementById("usersGrid");
+          if (grid)
+            grid.innerHTML =
+              '<div class="glass empty">Failed to load users. The server may be starting up — try refreshing in a moment.</div>';
+        }
+      }
+
+      async function renderUsers() {
+        await ensureMeta();
+        const host = document.getElementById("sectionHost");
+        host.innerHTML = `<div class="glass card"><div class="toolbar"><input id="userSearch" class="input" placeholder="Search by Discord name or userId" value="${escapeHtml(state.usersSearch)}"><div class="row muted mono"><button class="btn secondary" id="prevUsers">Prev</button><span>Page ${state.usersPage} / ${state.usersTotalPages}</span><button class="btn secondary" id="nextUsers">Next</button></div></div></div><div id="usersGrid" class="list" style="margin-top:12px"></div>`;
+        let tm;
+        document.getElementById("userSearch").addEventListener("input", (e) => {
+          clearTimeout(tm);
+          tm = setTimeout(() => {
+            state.usersSearch = e.target.value.trim();
+            state.usersPage = 1;
+            loadUsers();
+          }, 400);
+        });
+        document.getElementById("prevUsers").addEventListener("click", () => {
+          if (state.usersPage <= 1) return;
+          state.usersPage -= 1;
+          loadUsers();
+        });
+        document.getElementById("nextUsers").addEventListener("click", () => {
+          if (state.usersPage >= state.usersTotalPages) return;
+          state.usersPage += 1;
+          loadUsers();
+        });
+        await loadUsers();
+      }
+
+      function renderUsersList() {
+        const grid = document.getElementById("usersGrid");
+        if (!grid) return;
+        if (!state.users.length) {
+          grid.innerHTML = '<div class="glass empty">No users found.</div>';
+          return;
+        }
+        grid.innerHTML = state.users
+          .map(
+            (u, i) =>
+              `<article class="glass card stagger" style="animation-delay:${i * 40}ms"><div class="user-head"><div class="avatar">${escapeHtml((u.discordName || "U")[0])}</div><div><div style="font-size:17px">${escapeHtml(u.discordName || "Unknown")}</div><div class="muted">@${escapeHtml(u.discordTag || "Unknown")}</div></div></div><div class="mono muted">${escapeHtml(u.userId)}</div><div class="chips"><span class="chip">Coins: ${fmtNum(u.coins)}</span><span class="chip">Nuggets: ${fmtNum(u.nuggets)}</span><span class="chip">Prestige: ${fmtNum(u.prestige)}</span><span class="chip">ELO: ${fmtNum(u.elo)}</span></div><div class="chips">${
+                userEffects(u).length
+                  ? userEffects(u)
+                      .map(
+                        (e) =>
+                          `<span class="chip cyan">${escapeHtml(e)}</span>`,
+                      )
+                      .join("")
+                  : '<span class="chip">No active effects</span>'
+              }${u.isSlave ? '<span class="chip bad">SLAVE</span>' : ""}</div><div class="row"><button class="btn" data-edit-user="${u.userId}">Edit</button>${u.gridUrl ? `<button class="btn secondary" data-grid-user="${u.userId}">View Grid</button>` : ""}</div></article>`,
+          )
+          .join("");
+        grid
+          .querySelectorAll("[data-edit-user]")
+          .forEach((b) =>
+            b.addEventListener("click", () =>
+              openUserEditor(b.dataset.editUser),
+            ),
+          );
+        grid
+          .querySelectorAll("[data-grid-user]")
+          .forEach((b) =>
+            b.addEventListener("click", () => openGrid(b.dataset.gridUser)),
+          );
+      }
+
+      function fieldHtml(field, value) {
+        const tip = field.tip
+          ? `<span class="tooltip" data-tip="${escapeHtml(field.tip)}">?</span>`
+          : "<span></span>";
+        if (field.type === "boolean")
+          return `<div class="field"><label class="muted">${field.path} ${tip}</label><label class="row"><input type="checkbox" data-field="${field.path}" data-type="boolean" ${value ? "checked" : ""}><span class="muted">Enabled</span></label></div>`;
+        if (field.type === "timestamp")
+          return `<div class="field"><label class="muted">${field.path} ${tip}</label><input class="input" type="datetime-local" data-field="${field.path}" data-type="timestamp" value="${toDt(value)}"><div class="muted mono">${fmtTs(value)} • ${countdown(value)}</div></div>`;
+        if (field.type === "tags") {
+          const arr = Array.isArray(value) ? value : [];
+          const dl =
+            field.path === "inventory"
+              ? `<datalist id="dl-${field.path.replaceAll(".", "-")}">${(state.meta?.inventoryItems || []).map((it) => `<option value="${escapeHtml(it)}">`).join("")}</datalist>`
+              : "";
+          return `<div class="field" data-tags-wrap="${field.path}"><label class="muted">${field.path} ${tip}</label><div>${arr.length ? arr.map((it) => `<span class="chip">${escapeHtml(it)} <button type="button" data-rem-tag="${field.path}" data-val="${escapeHtml(it)}" style="background:none;border:none;color:#fca5a5;cursor:pointer">×</button></span>`).join(" ") : '<span class="dim">No items</span>'}</div><div class="row"><input class="input" data-tag-input="${field.path}" list="dl-${field.path.replaceAll(".", "-")}">${dl}<button type="button" class="btn secondary" data-add-tag="${field.path}">Add</button></div></div>`;
+        }
+        return `<div class="field"><label class="muted">${field.path} ${tip}</label><input class="input" type="${field.type === "number" ? "number" : "text"}" data-field="${field.path}" data-type="${field.type}" value="${escapeHtml(value ?? "")}"></div>`;
+      }
+
+      async function openUserEditor(userId) {
+        const data = await api(
+          `/admin/api/users/${encodeURIComponent(userId)}`,
+        );
+        if (!data) return;
+        state.userEditorDraft = JSON.parse(JSON.stringify(data));
+        const d = document.getElementById("drawer");
+        d.innerHTML = `<div class="row space" style="position:sticky;top:0;background:rgba(5,5,12,.95);padding-bottom:10px;z-index:2"><div><div class="logo">${escapeHtml(data.discordName)} <span class="muted">@${escapeHtml(data.discordTag)}</span></div><div class="mono muted">${escapeHtml(data.userId)}</div></div><button class="btn secondary" id="closeDrawer">Close</button></div>${userSections.map((s) => `<details class="collapse glass" open data-sec="${s.key}"><summary>${escapeHtml(s.title)} <span class="dim">▼</span></summary><div class="collapse-body">${s.fields.map((f) => fieldHtml(f, getByPath(state.userEditorDraft, f.path))).join("")}<div class="row"><input class="input" data-note="${s.key}" placeholder="Optional note"><button class="btn" data-save-sec="${s.key}">Save ${escapeHtml(s.title)}</button></div><div class="muted" data-save-msg="${s.key}" style="min-height:18px;color:#fca5a5"></div></div></details>`).join("")}`;
+        d.classList.add("open");
+        document
+          .getElementById("closeDrawer")
+          .addEventListener("click", () => d.classList.remove("open"));
+        d.querySelectorAll("[data-add-tag]").forEach((b) =>
+          b.addEventListener("click", () => {
+            const p = b.dataset.addTag;
+            const input = d.querySelector(
+              `[data-tag-input="${CSS.escape(p)}"]`,
+            );
+            const v = input.value.trim();
+            if (!v) return;
+            const arr = getByPath(state.userEditorDraft, p) || [];
+            if (!arr.includes(v)) arr.push(v);
+            setByPath(state.userEditorDraft, p, arr);
+            openUserEditor(userId);
+          }),
+        );
+        d.querySelectorAll("[data-rem-tag]").forEach((b) =>
+          b.addEventListener("click", () => {
+            const p = b.dataset.remTag;
+            const arr = (getByPath(state.userEditorDraft, p) || []).filter(
+              (x) => x !== b.dataset.val,
+            );
+            setByPath(state.userEditorDraft, p, arr);
+            openUserEditor(userId);
+          }),
+        );
+        d.querySelectorAll("[data-save-sec]").forEach((b) =>
+          b.addEventListener("click", async () => {
+            const sec = d.querySelector(
+                `[data-sec="${CSS.escape(b.dataset.saveSec)}"]`,
+              ),
+              patch = {};
+            const saveMsg = sec.querySelector(
+              `[data-save-msg="${CSS.escape(b.dataset.saveSec)}"]`,
+            );
+            if (saveMsg) saveMsg.textContent = "";
+            sec.querySelectorAll("[data-field]").forEach((n) => {
+              const p = n.dataset.field,
+                t = n.dataset.type;
+              let v = n.value;
+              if (t === "number") v = Number(v || 0);
+              if (t === "boolean") v = n.checked;
+              if (t === "timestamp") v = fromDt(v);
+              setByPath(patch, p, v);
+              setByPath(state.userEditorDraft, p, v);
+            });
+            sec
+              .querySelectorAll("[data-tags-wrap]")
+              .forEach((w) =>
+                setByPath(
+                  patch,
+                  w.dataset.tagsWrap,
+                  getByPath(state.userEditorDraft, w.dataset.tagsWrap) || [],
+                ),
+              );
+            const note = sec
+              .querySelector(`[data-note="${CSS.escape(b.dataset.saveSec)}"]`)
+              ?.value.trim();
+            if (note) patch.note = note;
+            try {
+              await api(`/admin/api/users/${encodeURIComponent(userId)}`, {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(patch),
+              });
+              flashSuccess(sec);
+              await loadUsers();
+            } catch (error) {
+              flashError(sec);
+              if (saveMsg)
+                saveMsg.textContent = extractErrorMessage(error, "Save failed");
+            }
+          }),
+        );
+      }
+
+      async function openGrid(userId) {
+        const d = await api(
+          `/admin/api/users/${encodeURIComponent(userId)}/grid`,
+        );
+        if (!d) return;
+        openModal(
+          `<div class="modal glass"><div class="row space"><h3 class="logo">Grid Image</h3><button class="btn secondary" data-close-modal>Close</button></div><div class="muted mono" style="margin-bottom:10px">${escapeHtml(d.discordName)} • ${escapeHtml(d.userId)}</div>${d.gridUrl ? `<img src="${escapeHtml(d.gridUrl)}" alt="grid" style="width:100%;border-radius:12px;border:1px solid var(--border-dim)">` : '<div class="empty">No grid available.</div>'}<div style="height:10px"></div><button class="btn danger" id="rmGrid">Remove Grid</button></div>`,
+          (r) =>
+            r.querySelector("#rmGrid")?.addEventListener("click", async () => {
+              await api(`/admin/api/users/${encodeURIComponent(userId)}/grid`, {
+                method: "DELETE",
+              });
+              closeModal();
+              await loadUsers();
+            }),
+        );
+      }
+    </script>
+    <script>
+      async function renderLoans() {
+        const host = document.getElementById("sectionHost");
+        host.innerHTML = `<div class="glass card"><div class="tabs">${["ALL", "ACTIVE", "DEFAULTED", "PAID"].map((s) => `<button class="tab ${state.loanFilter === s ? "active" : ""}" data-loan-filter="${s}">${s[0]}${s.slice(1).toLowerCase()}</button>`).join("")}</div><div style="overflow:auto"><table><thead><tr><th>Borrower</th><th>Lender</th><th>Amount</th><th>Remaining</th><th>Interest Rate</th><th>Status</th><th>Due Date</th><th>Actions</th></tr></thead><tbody id="loanRows"></tbody></table></div></div>`;
+        host.querySelectorAll("[data-loan-filter]").forEach((b) =>
+          b.addEventListener("click", async () => {
+            state.loanFilter = b.dataset.loanFilter;
+            await renderLoans();
+          }),
+        );
+        const q =
+          state.loanFilter === "ALL" ? "" : `?status=${state.loanFilter}`;
+        const d = await api(`/admin/api/loans${q}`);
+        if (!d) return;
+        state.loans = d.loans || [];
+        const rows = document.getElementById("loanRows");
+        if (!state.loans.length) {
+          rows.innerHTML =
+            '<tr><td colspan="8" class="empty">No loans found.</td></tr>';
+          return;
+        }
+        rows.innerHTML = state.loans
+          .map(
+            (l) =>
+              `<tr><td>${escapeHtml(l.borrowerDiscordName)}<div class="dim mono">${escapeHtml(l.borrowerId)}</div></td><td>${escapeHtml(l.lenderDiscordName)}<div class="dim mono">${escapeHtml(l.lenderId)}</div></td><td class="mono">${fmtNum(l.initialAmount)}</td><td class="mono">${fmtNum(l.remainingAmount)}</td><td>${l.interestRate}%</td><td><span class="chip ${l.status === "PAID" ? "good" : l.status === "DEFAULTED" ? "bad" : "cyan"}">${l.status}</span></td><td>${escapeHtml(fmtTs(l.dueDate))}</td><td><button class="btn secondary" data-edit-loan="${l._id}">Edit</button>${l.status === "ACTIVE" || l.status === "DEFAULTED" ? `<button class="btn danger" data-forgive-loan="${l._id}">Forgive</button>` : ""}</td></tr>`,
+          )
+          .join("");
+        rows
+          .querySelectorAll("[data-edit-loan]")
+          .forEach((b) =>
+            b.addEventListener("click", () => openLoanEdit(b.dataset.editLoan)),
+          );
+        rows
+          .querySelectorAll("[data-forgive-loan]")
+          .forEach((b) =>
+            b.addEventListener("click", () =>
+              openForgive(b.dataset.forgiveLoan),
+            ),
+          );
+      }
+
+      function openLoanEdit(id) {
+        const l = state.loans.find((x) => x._id === id);
+        if (!l) return;
+        openModal(
+          `<div class="modal glass"><div class="row space"><h3 class="logo">Edit Loan</h3><button class="btn secondary" data-close-modal>Close</button></div><div class="row"><div class="field" style="flex:1"><label class="muted">remainingAmount</label><input class="input" id="lr" type="number" value="${l.remainingAmount}"></div><div class="field" style="flex:1"><label class="muted">interestRate</label><input class="input" id="li" type="number" value="${l.interestRate}"></div></div><div class="row"><div class="field" style="flex:1"><label class="muted">status</label><select class="select" id="ls">${["ACTIVE", "DEFAULTED", "PAID"].map((s) => `<option value="${s}" ${l.status === s ? "selected" : ""}>${s}</option>`).join("")}</select></div><div class="field" style="flex:1"><label class="muted">dueDate</label><input class="input" id="ld" type="datetime-local" value="${toDt(l.dueDate)}"></div></div><div style="height:12px"></div><button class="btn" id="saveLoan">Save</button></div>`,
+          (r) =>
+            r.querySelector("#saveLoan").addEventListener("click", async () => {
+              await api(`/admin/api/loans/${id}`, {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  remainingAmount: Number(r.querySelector("#lr").value || 0),
+                  interestRate: Number(r.querySelector("#li").value || 0),
+                  status: r.querySelector("#ls").value,
+                  dueDate: fromDt(r.querySelector("#ld").value),
+                }),
+              });
+              closeModal();
+              await renderLoans();
+            }),
+        );
+      }
+      function openForgive(id) {
+        openModal(
+          `<div class="modal glass"><h3 class="logo">Confirm Forgive</h3><p class="muted">Set loan to PAID, remainingAmount=0, free borrower?</p><div class="row"><button class="btn danger" id="okForgive">Forgive Loan</button><button class="btn secondary" data-close-modal>Cancel</button></div></div>`,
+          (r) =>
+            r
+              .querySelector("#okForgive")
+              .addEventListener("click", async () => {
+                await api(`/admin/api/loans/${id}/forgive`, { method: "POST" });
+                closeModal();
+                await renderLoans();
+              }),
+        );
+      }
+
+      async function renderAuctions() {
+        const host = document.getElementById("sectionHost");
+        const d = await api("/admin/api/auctions");
+        if (!d) return;
+        state.auctions = d.auctions || [];
+        if (!state.auctions.length) {
+          host.innerHTML = '<div class="glass empty">No auctions found.</div>';
+          return;
+        }
+        host.innerHTML = `<div class="list">${state.auctions.map((a, i) => `<article class="glass card stagger" style="animation-delay:${i * 40}ms"><div class="row space"><strong>${escapeHtml(a.slaveDiscordName)}</strong><span class="chip ${a.active ? "cyan" : "good"}">${a.active ? "Active" : "Ended"}</span></div><div class="muted">Seller: ${escapeHtml(a.sellerDiscordName)}</div><div class="muted">Current Bidder: ${escapeHtml(a.bidderDiscordName || "Unknown")}</div><div class="mono">Current Bid: ${fmtNum(a.currentBid)}</div><div class="mono" data-auct-count="${a.endTime}">${escapeHtml(fmtAbsoluteWithCountdown(a.endTime))}</div><button class="btn danger" data-cancel-auction="${a.auctionId}">Cancel Auction</button></article>`).join("")}</div>`;
+        host.querySelectorAll("[data-cancel-auction]").forEach((b) =>
+          b.addEventListener("click", () =>
+            openModal(
+              `<div class="modal glass"><h3 class="logo">Cancel Auction</h3><p class="muted">Set active=false for this auction?</p><div class="row"><button class="btn danger" id="okCancel">Confirm</button><button class="btn secondary" data-close-modal>Back</button></div></div>`,
+              (r) =>
+                r
+                  .querySelector("#okCancel")
+                  .addEventListener("click", async () => {
+                    await api(
+                      `/admin/api/auctions/${encodeURIComponent(b.dataset.cancelAuction)}`,
+                      { method: "DELETE" },
+                    );
+                    closeModal();
+                    await renderAuctions();
+                  }),
+            ),
+          ),
+        );
+        const tick = () =>
+          document.querySelectorAll("[data-auct-count]").forEach((el) => {
+            el.textContent = fmtAbsoluteWithCountdown(el.dataset.auctCount);
+          });
+        tick();
+        state.sectionTimer = setInterval(tick, 1000);
+      }
+
+      async function renderStats() {
+        const host = document.getElementById("sectionHost");
+        const d = await api("/admin/api/stats");
+        if (!d) return;
+        const s = d.stats || {};
+        const weeklyGoal = Number(s.weeklyGoal || 0),
+          weeklyCoinCount = Number(s.weeklyCoinCount || 0),
+          weeklyPct =
+            weeklyGoal > 0
+              ? Math.min(100, Math.round((weeklyCoinCount / weeklyGoal) * 100))
+              : 0;
+        host.innerHTML = `<div class="glass card" id="statsPanel"><h3 class="logo">Server Stats</h3><div class="field"><label class="muted">Weekly Challenge Progress</label><div class="muted mono">${fmtNum(weeklyCoinCount)} / ${fmtNum(weeklyGoal)} (${weeklyPct}%)</div><div class="progress"><div class="progress-bar" style="width:${weeklyPct}%"></div></div></div><div class="row"><div class="field" style="flex:1"><label class="muted">guildId</label><input class="input" id="sgi" type="text" value="${escapeHtml(s.guildId || "")}"></div><div class="field" style="flex:1"><label class="muted">weeklyRewardAmount <span class="tooltip" data-tip="Overridden to 2000 in code currently">?</span></label><input class="input" id="sr" type="number" value="${s.weeklyRewardAmount ?? 0}"></div></div><div class="row"><div class="field" style="flex:1"><label class="muted">weeklyGoal <span class="tooltip" data-tip="Target weekly coin count for server reward">?</span></label><input class="input" id="sg" type="number" value="${s.weeklyGoal ?? 0}"></div><div class="field" style="flex:1"><label class="muted">weeklyCoinCount <span class="tooltip" data-tip="Resets every Monday">?</span></label><input class="input" id="sc" type="number" value="${s.weeklyCoinCount ?? 0}"></div></div><div class="row"><div class="field" style="flex:1"><label class="muted">lastReset</label><input class="input" id="slr" type="datetime-local" value="${toDt(s.lastReset)}"></div><div class="field" style="flex:1"><label class="muted">lastWeeklyReset</label><input class="input" id="sl" type="datetime-local" value="${toDt(s.lastWeeklyReset)}"></div></div><div class="row"><label class="muted">goalAnnouncedThisWeek <span class="tooltip" data-tip="Prevents duplicate goal announcements">?</span></label><input id="sa" type="checkbox" ${s.goalAnnouncedThisWeek ? "checked" : ""}></div><div class="row space"><div class="mono muted">weeklyClaimers: ${fmtNum((s.weeklyClaimers || []).length)}</div><button class="btn secondary" id="clearClaimers">Clear weeklyClaimers</button></div><div style="height:10px"></div><button class="btn" id="saveStats">Save Stats</button><div id="statsSaveMsg" class="muted" style="min-height:18px;color:#fca5a5;margin-top:8px"></div></div>`;
+        const panel = document.getElementById("statsPanel");
+        const saveMsg = document.getElementById("statsSaveMsg");
+        document
+          .getElementById("clearClaimers")
+          .addEventListener("click", async () => {
+            if (saveMsg) saveMsg.textContent = "";
+            try {
+              await api("/admin/api/stats", {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  clearWeeklyClaimers: true,
+                  note: "Cleared weeklyClaimers from dashboard",
+                }),
+              });
+              flashSuccess(panel);
+              await renderStats();
+            } catch (error) {
+              flashError(panel);
+              if (saveMsg)
+                saveMsg.textContent = extractErrorMessage(error, "Save failed");
+            }
+          });
+        document
+          .getElementById("saveStats")
+          .addEventListener("click", async () => {
+            const patch = {
+              guildId: document.getElementById("sgi").value.trim(),
+              weeklyGoal: Number(document.getElementById("sg").value || 0),
+              weeklyCoinCount: Number(document.getElementById("sc").value || 0),
+              weeklyRewardAmount: Number(
+                document.getElementById("sr").value || 0,
+              ),
+              lastReset: fromDt(document.getElementById("slr").value),
+              lastWeeklyReset: fromDt(document.getElementById("sl").value),
+              goalAnnouncedThisWeek: document.getElementById("sa").checked,
+            };
+            if (saveMsg) saveMsg.textContent = "";
+            try {
+              await api("/admin/api/stats", {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(patch),
+              });
+              flashSuccess(panel);
+              await renderStats();
+            } catch (error) {
+              flashError(panel);
+              if (saveMsg)
+                saveMsg.textContent = extractErrorMessage(error, "Save failed");
+            }
+          });
+      }
+
+      async function renderRelationships() {
+        const host = document.getElementById("sectionHost");
+        host.innerHTML = `<div class="glass card"><div class="tabs">${["all", "dating", "married", "enemies"].map((s) => `<button class="tab ${state.relationshipFilter === s ? "active" : ""}" data-rel-filter="${s}">${s[0].toUpperCase()}${s.slice(1)}</button>`).join("")}</div><div id="relGrid" class="list"></div></div>`;
+        host.querySelectorAll("[data-rel-filter]").forEach((b) =>
+          b.addEventListener("click", async () => {
+            state.relationshipFilter = b.dataset.relFilter;
+            await renderRelationships();
+          }),
+        );
+        const q =
+          state.relationshipFilter === "all"
+            ? ""
+            : `?status=${state.relationshipFilter}`;
+        const d = await api(`/admin/api/relationships${q}`);
+        if (!d) return;
+        state.relationships = d.relationships || [];
+        const grid = document.getElementById("relGrid");
+        if (!state.relationships.length) {
+          grid.innerHTML = '<div class="empty">No relationships found.</div>';
+          return;
+        }
+        grid.innerHTML = state.relationships
+          .map(
+            (r, i) =>
+              `<article class="glass card stagger" style="animation-delay:${i * 40}ms"><div class="row space"><strong>${escapeHtml(r.user1DiscordName)} × ${escapeHtml(r.user2DiscordName)}</strong><span class="chip ${r.status === "married" ? "good" : r.status === "enemies" ? "bad" : "cyan"}">${escapeHtml(r.status)}</span></div><div class="muted">Ship: ${escapeHtml(r.shipName || "N/A")} • Score ${fmtNum(r.shipScore || 0)}</div><div class="mono">Battle W/L: ${fmtNum(r.battleWins || 0)} / ${fmtNum(r.battleLosses || 0)}</div><div class="mono muted">History: ${fmtNum((r.history || []).length)} entries</div><div class="row"><button class="btn secondary" data-toggle-h="${r._id}">Expand</button><button class="btn" data-edit-r="${r._id}">Edit</button></div><div id="h-${r._id}" style="display:none">${
+                (r.history || [])
+                  .slice()
+                  .sort((a, b) => a.timestamp - b.timestamp)
+                  .map(
+                    (h) =>
+                      `<div class="chip" style="display:block;border-radius:10px;margin:4px 0">${escapeHtml(fmtTs(h.timestamp))} • ${escapeHtml(h.event || "")} • ${escapeHtml(h.note || "")}</div>`,
+                  )
+                  .join("") || '<div class="dim">No history</div>'
+              }</div></article>`,
+          )
+          .join("");
+        grid.querySelectorAll("[data-toggle-h]").forEach((b) =>
+          b.addEventListener("click", () => {
+            const el = document.getElementById(`h-${b.dataset.toggleH}`);
+            if (el)
+              el.style.display = el.style.display === "none" ? "block" : "none";
+          }),
+        );
+        grid
+          .querySelectorAll("[data-edit-r]")
+          .forEach((b) =>
+            b.addEventListener("click", () => openRelEdit(b.dataset.editR)),
+          );
+      }
+      function openRelEdit(id) {
+        const r = state.relationships.find((x) => x._id === id);
+        if (!r) return;
+        openModal(
+          `<div class="modal glass"><div class="row space"><h3 class="logo">Edit Relationship</h3><button class="btn secondary" data-close-modal>Close</button></div><div class="row"><div class="field" style="flex:1"><label class="muted">status</label><select class="select" id="rs">${["none", "dating", "married", "enemies"].map((s) => `<option value="${s}" ${r.status === s ? "selected" : ""}>${s}</option>`).join("")}</select></div><div class="field" style="flex:1"><label class="muted">shipScore</label><input class="input" id="rsc" type="number" value="${r.shipScore ?? 0}"></div></div><div class="row"><div class="field" style="flex:1"><label class="muted">shipName</label><input class="input" id="rn" value="${escapeHtml(r.shipName || "")}"></div><div class="field" style="flex:1"><label class="muted">battleWins</label><input class="input" id="rw" type="number" value="${r.battleWins ?? 0}"></div><div class="field" style="flex:1"><label class="muted">battleLosses</label><input class="input" id="rl" type="number" value="${r.battleLosses ?? 0}"></div></div><div style="height:10px"></div><button class="btn" id="saveRel">Save</button></div>`,
+          (m) =>
+            m.querySelector("#saveRel").addEventListener("click", async () => {
+              await api(`/admin/api/relationships/${id}`, {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  status: m.querySelector("#rs").value,
+                  shipScore: Number(m.querySelector("#rsc").value || 0),
+                  shipName: m.querySelector("#rn").value,
+                  battleWins: Number(m.querySelector("#rw").value || 0),
+                  battleLosses: Number(m.querySelector("#rl").value || 0),
+                }),
+              });
+              closeModal();
+              await renderRelationships();
+            }),
+        );
+      }
+
+      async function renderAudit() {
+        const host = document.getElementById("sectionHost");
+        const d = await api("/admin/api/audit");
+        if (!d) return;
+        const c = d.changes || [];
+        host.innerHTML = `<div class="glass card">${c.length ? c.map((e) => `<div class="mono" style="padding:8px 10px;border:1px solid var(--border-dim);border-radius:10px;margin-bottom:8px;border-left:3px solid ${e.action === "delete" ? "var(--danger)" : e.action === "forgive" ? "var(--accent-green)" : "var(--accent-cyan)"}">${escapeHtml(fmtTs(e.timestamp))}<br>${escapeHtml(e.entity || "entity")} ${escapeHtml(e.entityId || "")}<br>${escapeHtml(e.field || "")}: ${escapeHtml(JSON.stringify(e.oldValue))} → ${escapeHtml(JSON.stringify(e.newValue))}${e.note ? `<br><span class="muted">Note: ${escapeHtml(e.note)}</span>` : ""}</div>`).join("") : '<div class="empty">No admin actions recorded yet.</div>'}</div>`;
+      }
+
+      async function renderGuide() {
+        await ensureMeta();
+        const host = document.getElementById("sectionHost");
+        const rich = state.meta?.richTax || {};
+        const eco = state.meta?.economy || {};
+        host.innerHTML = `<div class="glass card"><h3 class="logo">Prestige Levels</h3><table><thead><tr><th>Level</th><th>Name</th><th>Wallet Cap Bonus</th><th>Notes</th></tr></thead><tbody>${[
+          [0, "None", "+0", "Base wallet cap 5M"],
+          [1, "Awakened", "+20M", ""],
+          [2, "Ascended", "+40M", ""],
+          [3, "Transcendent", "+60M", ""],
+          [4, "Mythic", "+80M", ""],
+          [5, "Divine", "+100M", ""],
+          [6, "Eternal", "+120M", ""],
+          [7, "Master", "+140M", "+3 nuggets on prestige"],
+        ]
+          .map(
+            (r) =>
+              `<tr><td>${r[0]}</td><td>${r[1]}</td><td>${r[2]}</td><td>${r[3]}</td></tr>`,
+          )
+          .join(
+            "",
+          )}</tbody></table><h3 class="logo">Nugget Sources</h3><div class="muted">• Every 10 duel wins: +1 nugget</div><div class="muted">• Prestige to level 7: +3 nuggets</div><div class="muted">• !claimweekly: +1 base, +1 at 200% stretch goal</div><div class="muted">• !daily day 60 +1, day 100 +2, every +30 after 100 +1</div><div class="muted">• Gold gacha box: rare drop chance</div><h3 class="logo">Forge Upgrade Costs</h3><div class="muted">• Wallet tiers 1-3: 2 nuggets each (+40M per tier)</div><div class="muted">• Wallet tiers 4-5: 4 nuggets each (+40M per tier)</div><div class="muted">• Wallet tiers 6-7: 5 nuggets each (+40M per tier)</div><div class="muted">• Wallet tiers 8-9: 6 nuggets each (+40M per tier)</div><div class="muted">• Wallet tier 10: 8 nuggets (+40M per tier)</div><div class="muted">• Vault tiers 1-3: 2 nuggets each (+5M per tier)</div><div class="muted">• Vault tiers 4-5: 3 nuggets each (+5M per tier)</div><h3 class="logo">Forge Shop Items</h3><div class="muted">• Golden Amulet 3 nuggets (+0.5x, max 3)</div><div class="muted">• Titan Vault 5 nuggets (2x cap)</div><div class="muted">• Debt Forgiveness 8 nuggets</div><h3 class="logo">Economy Constants</h3><div class="muted">• Rich tax: over ${fmtNum(rich.middleThreshold || 100000)} taxed ${(rich.middleRate || 0.2) * 100}% ; over ${fmtNum(rich.highThreshold || 1000000)} taxed ${(rich.highRate || 0.5) * 100}%</div><div class="muted">• Slave tax rate: ${(eco.slaveTaxRate || 0.4) * 100}%</div><div class="muted">• Loan repay rate: ${(eco.loanRepayRate || 0.2) * 100}%</div><div class="muted">• Vault interest: ${(eco.vaultInterestRate || 0.02) * 100}% per cycle</div><div class="muted">• Coin bag drop: ${fmtNum(eco.coinBagMin || 80)}-${fmtNum(eco.coinBagMax || 250)}</div><div class="muted">• Coin bag trigger: every ${eco.coinBagTriggerMin || 10}-${eco.coinBagTriggerMax || 18} messages</div><h3 class="logo">Active Effects Reference</h3><div class="muted">• bountyShieldExpiry: blocks bounty placement for 48h</div><div class="muted">• mediocrityExpiry: low-tier gacha for 24h</div><div class="muted">• trashTasteExpiry: Trash Curse effect</div><div class="muted">• botBanExpiry: command ban timer</div><div class="muted">• doubleDipActive: next distributeIncome() pays double then clears</div><div class="muted">• isekaiDiscountActive: next !isekai costs 25% less then clears</div></div>`;
+      }
+
+      async function renderDashboard() {
+        renderShell();
+        await renderSection();
+      }
+      function render() {
+        if (!state.authenticated) return renderLogin();
+        renderDashboard();
+      }
+      render();
+    </script>
+  </body>
+</html>
