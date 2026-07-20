@@ -22,7 +22,7 @@ async function loadMangaImageSafe(manga) {
         try {
             return await Canvas.loadImage(localPath);
         } catch (e) {
-            console.error(`Local image corrupt for ${manga.id}, falling back to MAL.`);
+            console.error(`Local image corrupt for ${manga.id}, falling back to URL.`);
             return await Canvas.loadImage(manga.image);
         }
     }
@@ -186,7 +186,7 @@ async function handle(message, client) {
             .setTitle(`📖  Manga Higher or Lower`)
             .setDescription(`Streak: **${currentStreak}**${comboText}${clutchText}${amuletText}\n\nThe manga **"${mangaB.title}"** has a...\n**HIGHER** 🔼 or **LOWER** 🔽 score than **${mangaA.score}**?`)
             .setImage('attachment://vs.png')
-            .setFooter({ text: "Data provided by Jikan (MyAnimeList)" });
+            .setFooter({ text: "Data provided by AniList" });
     };
 
     const getComponents = (disabled = false, currentStreak = 0) => {

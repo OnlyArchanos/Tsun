@@ -125,7 +125,7 @@ utils/
   gacha.js                 ← Gacha roll engine & drop tables
   helpers.js               ← Shared utility functions
   income.js                ← Central coin distribution pipeline
-  mangaCache.js            ← Jikan API manga cache for Higher/Lower
+  mangaCache.js            ← AniList GraphQL API manga cache for Higher/Lower
   roleSync.js              ← Discord role ↔ DB state synchroniser
 commands/
   battle.js                ← Duel system, guess-the-character
@@ -618,13 +618,13 @@ Returns a multi-line log string like:
 
 ### `utils/mangaCache.js`
 
-In-memory cache of top manga from Jikan API (MyAnimeList). Used by `higherLower.js`.
+In-memory cache of top manga from AniList GraphQL API. Used by `higherLower.js`.
 
 **`init()`**
 Calls `fetchTopManga()` immediately, then sets a 24-hour refresh interval.
 
 **`fetchTopManga()`**
-Fetches 12 pages from `https://api.jikan.moe/v4/top/manga?page={n}&filter=bypopularity&type=manga`.
+Fetches 16 pages from `https://graphql.anilist.co`.
 1,500ms delay between pages. Retries on HTTP 429. Skips 5xx errors.
 Validates: `score` must be a non-null number, image URL must exist, title must exist.
 Stores: `{id, title, score, image, rank, popularity}`.
@@ -1480,7 +1480,7 @@ CLOUDINARY_API_SECRET=
 5. `✅ Database Connected!`
 6. `🚀 Tsun is online as {bot tag}`
 7. Role sync logs per guild
-8. `📚 Starting Manga Cache initialization (Jikan API)...`
+8. `📚 Starting Manga Cache initialization (AniList API)...`
 
 ---
 

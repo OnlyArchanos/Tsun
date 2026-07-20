@@ -5,11 +5,10 @@ let isInitialized = false;
 let isInitializing = false;
 let retryTimeout = null;
 
-// Jikan API safety limits.
-const DELAY_BETWEEN_REQUESTS = 1500;
+// AniList API settings.
+const DELAY_BETWEEN_REQUESTS = 1000;
 const TOTAL_PAGES = 16;
-const REQUEST_TIMEOUT_MS = 7000;
-const MAX_429_RETRIES_PER_PAGE = 1;
+const REQUEST_TIMEOUT_MS = 10000;
 const MAX_CONSECUTIVE_HARD_FAILURES = 4;
 const MIN_READY_ITEMS = 50;
 const RETRY_ON_FAILURE_MS = 30 * 60 * 1000; // 30 minutes
@@ -30,41 +29,68 @@ function scheduleRetry() {
 }
 
 async function fetchPage(page) {
-    let rateLimitRetries = 0;
-
     while (true) {
         try {
-            const response = await fetch(`https://api.jikan.moe/v4/top/manga?page=${page}&filter=bypopularity&type=manga`, {
+            const query = `
+                query {
+                    Page(page: ${page}, perPage: 50) {
+                        media(type: MANGA, sort: POPULARITY_DESC, isAdult: false) {
+                            id
+                            title {
+                                romaji
+                                english
+                            }
+                            coverImage {
+                                large
+                            }
+                            averageScore
+                            popularity
+                        }
+                    }
+                }
+            `;
+
+            const response = await fetch(`https://graphql.anilist.co`, {
+                method: 'POST',
                 signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
-                headers: { 'User-Agent': 'TsunBot/1.0' }
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                    'User-Agent': 'TsunBot/1.0' 
+                },
+                body: JSON.stringify({ query })
             });
 
             if (!response.ok) {
-                if (response.status === 429 && rateLimitRetries < MAX_429_RETRIES_PER_PAGE) {
-                    rateLimitRetries++;
-                    await sleep(10000);
+                if (response.status === 429) {
+                    const retryAfter = response.headers.get('retry-after') || 10;
+                    await sleep(retryAfter * 1000);
                     continue;
                 }
                 return { ok: false, status: response.status };
             }
 
             const data = await response.json();
-            const list = Array.isArray(data?.data) ? data.data : [];
+            const list = data?.data?.Page?.media;
+            
+            if (!Array.isArray(list)) {
+                 return { ok: false, status: 500, error: 'Invalid AniList format' };
+            }
 
             const cleanData = list
                 .filter(m =>
-                    m.score !== null &&
-                    m.score !== undefined &&
-                    !isNaN(m.score) &&
-                    m.images?.jpg?.image_url &&
-                    m.titles?.[0]?.title
+                    m.averageScore !== null &&
+                    m.averageScore !== undefined &&
+                    !isNaN(m.averageScore) &&
+                    m.coverImage?.large &&
+                    (m.title?.romaji || m.title?.english)
                 )
-                .map(m => ({
-                    id: m.mal_id,
-                    title: m.titles.find(t => t.type === 'Default')?.title || m.title,
-                    score: parseFloat(m.score),
-                    image: m.images.jpg.large_image_url || m.images.jpg.image_url,
-                    rank: m.rank,
+                .map((m, idx) => ({
+                    id: m.id,
+                    title: m.title.english || m.title.romaji,
+                    score: parseFloat((m.averageScore / 10).toFixed(2)), // Convert 100-point to 10-point
+                    image: m.coverImage.large,
+                    rank: ((page - 1) * 50) + idx + 1, // AniList doesn't return global rank for popularity sorts natively, so we approximate
                     popularity: m.popularity
                 }));
 
@@ -76,7 +102,7 @@ async function fetchPage(page) {
 }
 
 /**
- * Fetches top manga from Jikan API.
+ * Fetches top manga from AniList API.
  * Non-blocking: errors are summarized and do not crash the bot.
  */
 async function fetchTopManga() {
@@ -93,7 +119,7 @@ async function fetchTopManga() {
     let otherErrorPages = 0;
     let consecutiveHardFailures = 0;
 
-    console.log('[MANGA CACHE] Refresh started (Jikan).');
+    console.log('[MANGA CACHE] Refresh started (AniList).');
 
     try {
         for (let page = 1; page <= TOTAL_PAGES; page++) {
