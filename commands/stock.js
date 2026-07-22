@@ -436,7 +436,7 @@ module.exports = {
                     $expr: { $lte: [{ $add: [{ $ifNull: ['$shares', 0] }, amount] }, S.MAX_SHARES_PER_USER] }
                 },
                 { $inc: { shares: amount, totalInvested: totalCost } },
-                { new: true }
+                { returnDocument: 'after' }
             );
 
             // If no doc matched the $expr, try upsert for new portfolio entries
@@ -462,14 +462,14 @@ module.exports = {
             const buyer = await User.findOneAndUpdate(
                 { userId: requesterId, coins: { $gte: totalCost } },
                 { $inc: { coins: -totalCost, systemSpent: totalCost } },
-                { new: true }
+                { returnDocument: 'after' }
             );
             if (!buyer) {
                 // Rollback the portfolio update
                 const rolledBack = await Portfolio.findOneAndUpdate(
                     { ownerId: requesterId, targetUserId: targetId },
                     { $inc: { shares: -amount, totalInvested: -totalCost } },
-                    { new: true }
+                    { returnDocument: 'after' }
                 );
                 if (rolledBack && rolledBack.shares <= 0) {
                     await Portfolio.deleteOne({ _id: rolledBack._id });
@@ -509,7 +509,7 @@ module.exports = {
             const holding = await Portfolio.findOneAndUpdate(
                 { ownerId: requesterId, targetUserId: targetId, shares: { $gte: amount } },
                 { $inc: { shares: -amount } },
-                { new: true }
+                { returnDocument: 'after' }
             );
             if (!holding) {
                 return interaction.update({ content: `You don't have enough shares to sell! (¬_¬)`, embeds: [], components: [] });

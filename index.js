@@ -1,3 +1,4 @@
+require('./utils/colorLogger');
 require('dotenv').config();
 const { Client, GatewayIntentBits, ActivityType, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, ComponentType, PermissionFlagsBits } = require('discord.js');
 const fs = require('fs');
@@ -1862,7 +1863,7 @@ client.on('messageCreate', async (message) => {
                 $inc: { coins: -500, systemSpent: 500 },
                 $pull: { lastRatTargets: { targetId: target.id } }
             },
-            { new: true }
+            { returnDocument: 'after' }
         );
         if (!deductResult) return message.reply("You need at least **500 coins** to rat! (¬_¬)");
         await User.updateOne(
@@ -2039,4 +2040,5 @@ client.login(process.env.DISCORD_TOKEN)
     .catch(err => {
         console.error("❌ FAILED to login to Discord:", err);
     });
+
 

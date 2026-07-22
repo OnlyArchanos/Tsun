@@ -55,7 +55,7 @@ async function distributeIncome(userId, baseAmount, options = {}) {
         const dipResult = await User.findOneAndUpdate(
             { userId, doubleDipActive: true },
             { $set: { doubleDipActive: false } },
-            { new: true }
+            { returnDocument: 'after' }
         );
         if (dipResult) {
             baseAmount = baseAmount * 2;

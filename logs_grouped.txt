@@ -1,0 +1,184 @@
+
+=== ERROR - General (120 usages) ===
+  (check_anomalies.js) .catch(console.error);
+  (check_prices.js) .catch(console.error);
+  (check_prices_bottom.js) .catch(console.error);
+  ...and 117 more
+
+=== ERROR - [${name}] (1 usages) ===
+  (index.js) console.error(`[${name}] Interaction handler error:`, err);
+
+=== ERROR - [API /balance] (1 usages) ===
+  (web\app\api\balance\route.js) console.error('[API /balance] Error:', err);
+
+=== ERROR - [API /portfolio] (1 usages) ===
+  (web\app\api\portfolio\route.js) console.error('[API /portfolio] Error:', err);
+
+=== ERROR - [API /stock/:userId/history] (1 usages) ===
+  (web\app\api\stock\[userId]\history\route.js) console.error('[API /stock/:userId/history] Error:', err);
+
+=== ERROR - [API /stock/:userId] (1 usages) ===
+  (web\app\api\stock\[userId]\route.js) console.error('[API /stock/:userId] Error:', err);
+
+=== ERROR - [API /stocks] (1 usages) ===
+  (web\app\api\stocks\route.js) console.error('[API /stocks] Error:', err);
+
+=== ERROR - [API /trade] (1 usages) ===
+  (web\app\api\trade\route.js) console.error('[API /trade] Error:', err);
+
+=== ERROR - [BAIT SHOP] (1 usages) ===
+  (commands\economy.js) console.error('[BAIT SHOP] Modal purchase failed:', e);
+
+=== ERROR - [BUZZ] (1 usages) ===
+  (index.js) ).catch(err => console.error('[BUZZ] Tracking error:', err.message));
+
+=== ERROR - [FISHING SHOP] (5 usages) ===
+  (commands\economy.js) if (e?.code !== 10062 && e?.code !== 40060) console.error('[FISHING SHOP] Failed to defer purchase:', e);
+  (commands\economy.js) if (replyError?.code !== 10062 && replyError?.code !== 40060) console.error('[FISHING SHOP] Failed to send defer fallback:', replyError);
+  (commands\economy.js) if (e?.code !== 10062 && e?.code !== 40060) console.error('[FISHING SHOP] Failed to reply:', e);
+  ...and 2 more
+
+=== ERROR - [GACHA] (2 usages) ===
+  (utils\gacha.js) console.error('[GACHA] WARNING: No MYTHIC titles found! Disabling featured banner.');
+  (utils\gacha.js) console.error('[GACHA] Failed to rotate featured banner:', err);
+
+=== ERROR - [Guess OP] (2 usages) ===
+  (commands\guessOp.js) console.error("[Guess OP] FFmpeg Error (15s offset):", err.message, "| Retrying without seek");
+  (commands\guessOp.js) console.error("[Guess OP] FFmpeg Error (Fallback):", err.message);
+
+=== ERROR - [Guess Trivia] (4 usages) ===
+  (commands\guessOp.js) console.error("[Guess Trivia] Failed to fetch anime cache:", err.message);
+  (commands\guessOp.js) console.error(`[Guess Trivia] API error for ${titleQuery}: ${e.message}`);
+  (commands\guessOp.js) console.error("[Guess Trivia] Background queue fill error:", e);
+  ...and 1 more
+
+=== ERROR - [HELP] (3 usages) ===
+  (commands\utility.js) if (e.code !== 10062 && e.code !== 40060) console.error('[HELP] Error updating fishing help:', e);
+  (commands\utility.js) if (e.code !== 10062 && e.code !== 40060) console.error('[HELP] Error updating fishing gear help:', e);
+  (commands\utility.js) console.error('[HELP] Error updating interaction:', e);
+
+=== ERROR - [IMAGE LOAD ERROR] (1 usages) ===
+  (commands\battle.js) console.error(`[IMAGE LOAD ERROR] Failed to load ${url}:`, e);
+
+=== ERROR - [INFO] (2 usages) ===
+  (commands\utility.js) console.error('[INFO] Error building profile:', e);
+  (commands\utility.js) console.error('[INFO] Button interaction error:', e);
+
+=== ERROR - [LEADERBOARD] (1 usages) ===
+  (commands\leaderboard.js) console.error('[LEADERBOARD] alltime crash:', e);
+
+=== ERROR - [Launcher] (2 usages) ===
+  (launcher.js) console.error('[Launcher] Unexpected error in auto-updater:', e.message);
+  (launcher.js) console.error('[Launcher] Continuing with existing files...');
+
+=== ERROR - [MANGA CACHE] (1 usages) ===
+  (utils\mangaCache.js) console.error('[MANGA CACHE] Fatal refresh error:', globalErr);
+
+=== ERROR - [Profile Cache] (1 usages) ===
+  (index.js) ).catch(err => console.error('[Profile Cache] Error:', err.message));
+
+=== ERROR - [RELS] (1 usages) ===
+  (commands\utility.js) console.error('[RELS] Error building relationships page:', e);
+
+=== ERROR - [ROLE_SYNC] (28 usages) ===
+  (utils\roleSync.js) console.error(`[ROLE_SYNC] CRITICAL: Missing 'ManageRoles' permission in ${guild.name}`);
+  (utils\roleSync.js) console.error(`[ROLE_SYNC] Failed to create role '${title}':`, err.message);
+  (utils\roleSync.js) }).catch(e => console.error(`[ROLE_SYNC] Failed to create prestige role ${pRole}:`, e.message));
+  ...and 25 more
+
+=== ERROR - [RR] (15 usages) ===
+  (commands\economy.js) console.error('[RR] Failed to send spin message:', err);
+  (commands\economy.js) console.error('[RR] Failed to edit teaser:', err);
+  (commands\economy.js) console.error('[RR] Failed to show survival embed:', err);
+  ...and 12 more
+
+=== ERROR - [SNATCH] (3 usages) ===
+  (commands\economy.js) console.error("[SNATCH] Member search error:", e);
+  (commands\economy.js) console.error('[SNATCH] Failed to update slave nickname:', e);
+  (commands\economy.js) console.error('[SNATCH] Error:', e);
+
+=== ERROR - [StockEngine] (8 usages) ===
+  (utils\stockEngine.js) console.error('[StockEngine] onMessage error:', err.message);
+  (utils\stockEngine.js) console.error('[StockEngine] onDuelResult error:', err.message);
+  (utils\stockEngine.js) console.error('[StockEngine] onMinigameWin error:', err.message);
+  ...and 5 more
+
+=== ERROR - [TsunStocks] (5 usages) ===
+  (index.js) console.error('[TsunStocks] Hourly timer error:', err);
+  (index.js) console.error(`[TsunStocks] CEO salary error for ${userId}:`, e.message);
+  (index.js) console.error(`[TsunStocks] Dividend error for ${h.ownerId}:`, e.message);
+  ...and 2 more
+
+=== LOG - General (127 usages) ===
+  (check_anomalies.js) console.log(`Found ${topStocks.length} anomaly stocks.`);
+  (check_anomalies.js) console.log(`\nStock: ${stock.userId} - Price: ${stock.currentPrice}`);
+  (check_anomalies.js) console.log(`  Owned by ${holdings.length} users:`);
+  ...and 124 more
+
+=== LOG - [BATTLE.JS] (1 usages) ===
+  (commands\battle.js) console.log('[BATTLE.JS] Title color system loaded - Gacha titles:', Object.keys(GACHA_TITLES));
+
+=== LOG - [DEBUG] (1 usages) ===
+  (commands\battle.js) // console.log(`[DEBUG] Loading Image: ${optimizedUrl}`);
+
+=== LOG - [DUEL DEBUG] (3 usages) ===
+  (commands\battle.js) console.log(`[DUEL DEBUG] Rendering titles - P1: "${p1Data.equippedTitle || 'NONE'}", P2: "${p2Data.equippedTitle || 'NONE'}"`);
+  (commands\battle.js) console.log(`[DUEL DEBUG] P1 Title: "${p1Data.equippedTitle}" -> Color: ${p1TitleColor}`);
+  (commands\battle.js) console.log(`[DUEL DEBUG] P2 Title: "${p2Data.equippedTitle}" -> Color: ${p2TitleColor}`);
+
+=== LOG - [GACHA] (1 usages) ===
+  (utils\gacha.js) console.log(`[GACHA] 🔥 Featured banner rotated to: "${newTitle}" (next rotation in ${featured.ROTATION_HOURS || 72}h)`);
+
+=== LOG - [Guess Trivia] (6 usages) ===
+  (commands\guessOp.js) console.log(`[Guess Trivia] Fetching AniList pages ${startPage}-${endPage} (target: ${targetCount})...`);
+  (commands\guessOp.js) console.log(`[Guess Trivia] Cache now has ${topAnimeCache.length} anime (${cachedPageCount} pages).`);
+  (commands\guessOp.js) console.log(`[Guess Trivia] Pre-fetching OP buffer... (${opQueue.length}/3)`);
+  ...and 3 more
+
+=== LOG - [HELP] (1 usages) ===
+  (commands\utility.js) console.log('[HELP] Interaction timed out, ignoring...');
+
+=== LOG - [MANGA CACHE] (2 usages) ===
+  (utils\mangaCache.js) console.log('[MANGA CACHE] Refresh started (AniList).');
+  (utils\mangaCache.js) console.log(`[MANGA CACHE] Refresh complete. ${stats}`);
+
+=== LOG - [ROLE_SYNC] (12 usages) ===
+  (utils\roleSync.js) console.log(`[ROLE_SYNC] Verifying roles for ${guild.name}...`);
+  (utils\roleSync.js) console.log(`[ROLE_SYNC] Role verification complete for ${guild.name}.`);
+  (utils\roleSync.js) console.log(`[ROLE_SYNC] Starting bulk sync for ${guild.name}...`);
+  ...and 9 more
+
+=== LOG - [StockEngine] (3 usages) ===
+  (utils\stockEngine.js) console.log(`[StockEngine] Decay applied to ${inactiveStocks.length} inactive stocks.`);
+  (utils\stockEngine.js) console.log(`[StockEngine] Snapshotted ${docs.length} stock prices.`);
+  (utils\stockEngine.js) console.log(`[StockEngine] Daily reset complete. ${ceoPayouts.length} CEO salaries pending.`);
+
+=== LOG - [TsunStocks] (2 usages) ===
+  (index.js) console.log(`[TsunStocks] Dividends paid for ${holdings.length} holdings across top ${topIds.length} active users.`);
+  (index.js) console.log('[TsunStocks] Daily reset + Blue Chip sync complete.');
+
+=== WARN - General (14 usages) ===
+  (commands\social.js) console.warn(`Failed to apply relationship suffix for ${userId}:`, e.message);
+  (commands\social.js) console.warn(`Failed to remove relationship suffix for ${userId}:`, e.message);
+  (commands\utility.js) console.warn('RESET: HoF capture failed (non-fatal):', hofErr.message);
+  ...and 11 more
+
+=== WARN - [Giveaway] (1 usages) ===
+  (index.js) console.warn(`[Giveaway] Rate limited or failed to fetch all members, falling back to cached members: ${err.message}`);
+
+=== WARN - [Guess Trivia] (1 usages) ===
+  (commands\guessOp.js) console.warn('[Guess Trivia] isPlaying safety reset triggered — collector may have died silently.');
+
+=== WARN - [MANGA CACHE] (3 usages) ===
+  (utils\mangaCache.js) console.warn(`[MANGA CACHE] Refresh failed. Scheduling retry in ${Math.floor(RETRY_ON_FAILURE_MS / 60000)} minutes.`);
+  (utils\mangaCache.js) console.warn(`[MANGA CACHE] Refresh incomplete; keeping previous cache (${mangaCache.length} items). ${stats}`);
+  (utils\mangaCache.js) console.warn(`[MANGA CACHE] Cache not ready yet. ${stats}`);
+
+=== WARN - [ROLE_SYNC] (4 usages) ===
+  (utils\roleSync.js) if (!memberRole) console.warn(`[ROLE_SYNC] Warning: '${config.ROLES.MEMBER}' role not found. New roles will be created at the bottom.`);
+  (utils\roleSync.js) await member.roles.remove(oldRole, "Unequipping Title").catch(e => console.warn(`[ROLE_SYNC] Failed to remove ${oldTitleName}: ${e.message}`));
+  (utils\roleSync.js) console.warn(`[ROLE_SYNC] Role for title '${newTitleName}' not found! Run ensureAllRoles?`);
+  ...and 1 more
+
+=== WARN - [WARN] (1 usages) ===
+  (index.js) client.on('warn', info => console.warn(`[WARN] ${info}`));

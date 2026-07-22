@@ -295,7 +295,7 @@ async function executeGachaPull(context, user, tier, pullCount, client) {
             const boxResult = await User.findOneAndUpdate(
                 { userId: originalAuthor.id, inventory: boxName },
                 { $unset: { 'inventory.$': 1 }, $inc: { gachaBoxesOpened: 1 } },
-                { new: true }
+                { returnDocument: 'after' }
             );
             if (boxResult) {
                 // Clean up the null left by $unset (cosmetic, not race-critical)
@@ -344,7 +344,7 @@ async function executeGachaPull(context, user, tier, pullCount, client) {
             const gachaDeduct = await User.findOneAndUpdate(
                 { userId: originalAuthor.id, coins: { $gte: totalCost } },
                 { $inc: incFields },
-                { new: true }
+                { returnDocument: 'after' }
             );
             if (!gachaDeduct) {
                 const msg = `🚫 You need **${totalCost.toLocaleString('en-US')}** coins for ${pullCount}x ${tier} box${pullCount > 1 ? 'es' : ''}! You only have **${user.coins.toLocaleString('en-US')}**. Stop being poor! (¬_¬)`;
@@ -1089,7 +1089,7 @@ module.exports = {
             const deducted = await User.findOneAndUpdate(
                 { userId: message.author.id, coins: { $gte: amount } },
                 { $inc: { coins: -amount, systemSpent: tax } },
-                { new: true }
+                { returnDocument: 'after' }
             );
             if (!deducted) return message.reply(`You're too broke for revenge. Balance: ${user.coins}`);
             user = deducted;
@@ -1139,7 +1139,7 @@ module.exports = {
             const deducted = await User.findOneAndUpdate(
                 { userId: message.author.id, coins: { $gte: bet } },
                 { $inc: { coins: -bet, systemSpent: bet } },
-                { new: true }
+                { returnDocument: 'after' }
             );
             if (!deducted) return message.reply(`You're too broke! Balance: **${user.coins.toLocaleString('en-US')}**. Earn something first, baka! (¬_¬)`);
 
@@ -1718,7 +1718,7 @@ module.exports = {
             const tossDeduct = await User.findOneAndUpdate(
                 { userId: message.author.id, coins: { $gte: amount } },
                 { $inc: { coins: -amount, systemSpent: amount } },
-                { new: true }
+                { returnDocument: 'after' }
             );
             if (!tossDeduct) return message.reply(`You're too poor! Balance: ${user.coins.toLocaleString('en-US')}`);
 
@@ -1798,7 +1798,7 @@ module.exports = {
             const slotsDeduct = await User.findOneAndUpdate(
                 { userId: message.author.id, coins: { $gte: bet } },
                 { $inc: { coins: -bet, systemSpent: bet } },
-                { new: true }
+                { returnDocument: 'after' }
             );
             if (!slotsDeduct) return message.reply(`🚫 You're broke! Balance: **${user.coins}**.`);
 
@@ -2062,7 +2062,7 @@ module.exports = {
                 const ownerUpdated = await User.findOneAndUpdate(
                     { userId: message.author.id, coins: { $gte: amount } },
                     { $inc: { coins: -amount, totalCarrotsSpent: amount } },
-                    { new: true }
+                    { returnDocument: 'after' }
                 );
                 if (!ownerUpdated) {
                     return message.reply(`You're too broke to motivate anyone! Balance: **${user.coins.toLocaleString('en-US')}c** (¬_¬)`);
@@ -2083,7 +2083,7 @@ module.exports = {
                             'activeCarrot.ownerId': message.author.id
                         }
                     },
-                    { new: true }
+                    { returnDocument: 'after' }
                 );
 
                 if (!carrotApplied) {
@@ -2150,7 +2150,7 @@ module.exports = {
                 const resistUpdated = await User.findOneAndUpdate(
                     { userId: message.author.id, isSlave: true },
                     { $set: { carrotResistUsed: true, resistExpiresAt: resistUntil } },
-                    { new: true }
+                    { returnDocument: 'after' }
                 );
                 if (!resistUpdated) {
                     return message.reply("Resist failed. Tch... try again, baka. (¬_¬)");
@@ -2586,7 +2586,7 @@ module.exports = {
                 const bidDeduct = await User.findOneAndUpdate(
                     { userId: message.author.id, coins: { $gte: bidAmount } },
                     { $inc: { coins: -bidAmount } },
-                    { new: true }
+                    { returnDocument: 'after' }
                 );
                 if (!bidDeduct) return message.reply(`You're too broke! You need **${bidAmount.toLocaleString('en-US')}** coins but only have **${user.coins.toLocaleString('en-US')}**!`);
 
@@ -2594,7 +2594,7 @@ module.exports = {
                 const updatedAuction = await Auction.findOneAndUpdate(
                     { _id: auction._id, currentBid: auction.currentBid },
                     { $set: { currentBid: bidAmount, currentBidder: message.author.id } },
-                    { new: true }
+                    { returnDocument: 'after' }
                 );
                 if (!updatedAuction) {
                     // Refund the bidder since auction was modified concurrently
@@ -2837,7 +2837,7 @@ module.exports = {
                 const borrowerDeducted = await User.findOneAndUpdate(
                     { userId: message.author.id, coins: { $gte: repaidAmount } },
                     { $inc: { coins: -repaidAmount } },
-                    { new: true }
+                    { returnDocument: 'after' }
                 );
                 if (!borrowerDeducted) {
                     return message.reply(`You're too poor to repay your debt! You owe **${repaidAmount}** but can't pay right now!`);
@@ -2847,7 +2847,7 @@ module.exports = {
                 const updatedLoan = await Loan.findOneAndUpdate(
                     { _id: loan._id, status: { $in: ACTIVE_LOAN_STATUSES }, remainingAmount: repaidAmount },
                     { $set: { status: 'PAID', remainingAmount: 0 } },
-                    { new: true }
+                    { returnDocument: 'after' }
                 );
                 
                 if (!updatedLoan) {
@@ -3082,7 +3082,7 @@ module.exports = {
                             vaultCoins: { $lte: maxCapacity - depAmount }
                         },
                         depositUpdate,
-                        { new: true }
+                        { returnDocument: 'after' }
                     );
                     if (!depResult) {
                         // Distinguish between broke and vault-full so the error is accurate
@@ -3169,7 +3169,7 @@ module.exports = {
                     {
                         $inc: { vaultCoins: -withAmount, coins: withAmount, vaultDailyWithdrawn: withAmount }
                     },
-                    { new: true }
+                    { returnDocument: 'after' }
                 );
                 if (!withResult) return message.reply("Something shifted while processing — your vault or limit may have changed. Check !vault and try again! (¬_¬)");
                 user = withResult;
@@ -3381,7 +3381,7 @@ module.exports = {
                         'fishing.dailyBounty.expiresAt': 0
                     }
                 },
-                { new: true }
+                { returnDocument: 'after' }
             );
             if (!wipeResult) {
                 return interaction.update({ content: "\ud83d\udeab You went broke before the truck hit you! Transaction failed!", embeds: [], components: [] });
@@ -3692,7 +3692,7 @@ module.exports = {
                     const updatedLender = await User.findOneAndUpdate(
                         { userId: lenderId, coins: { $gte: amount } },
                         { $inc: { coins: -amount } },
-                        { new: true }
+                        { returnDocument: 'after' }
                     );
                     if (!updatedLender) {
                         return interaction.editReply({ content: "🚫 **Loan Failed!** The lender went broke! Unbelievable!", embeds: [], components: [] });
@@ -3827,7 +3827,7 @@ module.exports = {
                     const updateRes = await User.findOneAndUpdate(
                         { userId: interaction.user.id, coins: { $gte: cost } },
                         { $inc: { coins: -cost, systemSpent: cost } },
-                        { new: true }
+                        { returnDocument: 'after' }
                     );
                     if (!updateRes) {
                         return interaction.reply({ content: `🚫 You need **${cost.toLocaleString('en-US')}** coins! You're too broke! (¬_¬)`, flags: MessageFlags.Ephemeral });
@@ -4490,7 +4490,7 @@ module.exports = {
                 const result = await User.findOneAndUpdate(
                     { userId: interaction.user.id, equippedTitle: oldTitle },
                     { $set: { equippedTitle: null } },
-                    { new: true }
+                    { returnDocument: 'after' }
                 );
                 if (!result) {
                     return interaction.followUp({ content: "Title already removed! Someone beat me to it! (¬_¬)", flags: MessageFlags.Ephemeral });
@@ -4502,7 +4502,7 @@ module.exports = {
                 const result = await User.findOneAndUpdate(
                     { userId: interaction.user.id, equippedShield: true },
                     { $set: { equippedShield: false }, $push: { inventory: "Elo Shield" } },
-                    { new: true }
+                    { returnDocument: 'after' }
                 );
                 if (!result) {
                     return interaction.followUp({ content: "Shield's already gone! Did you just lose a duel?! (¬_¬)", flags: MessageFlags.Ephemeral });
@@ -4620,7 +4620,7 @@ module.exports = {
                 const shieldResult = await User.findOneAndUpdate(
                     { userId: interaction.user.id, equippedShield: true },
                     { $set: { equippedShield: false }, $push: { inventory: "Elo Shield" } },
-                    { new: true }
+                    { returnDocument: 'after' }
                 );
                 if (shieldResult) {
                     results.push('🛡️ Elo Shield returned to inventory.');
@@ -4764,7 +4764,7 @@ module.exports = {
                 const snatchUpdate = await User.findOneAndUpdate(
                     { userId: interaction.user.id },
                     { $unset: unsetObj },
-                    { new: true }
+                    { returnDocument: 'after' }
                 );
                 
                 // Finalize array removal
@@ -4892,21 +4892,21 @@ module.exports = {
                         let updateRes = await User.findOneAndUpdate(
                             { userId: interaction.user.id, ...balanceFilter, 'fishing.gear.activeBait': gearId },
                             sameBaitUpdate,
-                            { new: true }
+                            { returnDocument: 'after' }
                         );
                         if (updateRes) return updateRes;
 
                         updateRes = await User.findOneAndUpdate(
                             { userId: interaction.user.id, ...balanceFilter, 'fishing.gear.activeBait': { $ne: gearId } },
                             switchBaitUpdate,
-                            { new: true }
+                            { returnDocument: 'after' }
                         );
                         if (updateRes) return updateRes;
 
                         return User.findOneAndUpdate(
                             { userId: interaction.user.id, ...balanceFilter, 'fishing.gear.activeBait': gearId },
                             sameBaitUpdate,
-                            { new: true }
+                            { returnDocument: 'after' }
                         );
                     };
 
@@ -4954,7 +4954,7 @@ module.exports = {
                                 $inc: { nuggets: -gearInfo.cost },
                                 $set: setFields
                             },
-                            { new: true }
+                            { returnDocument: 'after' }
                         );
                         if (!updateRes) {
                             const freshUser = await User.findOne({ userId: interaction.user.id }).select('nuggets fishing.gear.ownedRods').lean();
@@ -5051,7 +5051,7 @@ module.exports = {
                 const updateRes = await User.findOneAndUpdate(
                     { userId: interaction.user.id, coins: { $gte: cost } },
                     { $inc: { coins: -cost, systemSpent: cost }, $set: { frameColor: hexColor } },
-                    { new: true }
+                    { returnDocument: 'after' }
                 );
                 if (!updateRes) return interaction.reply({ content: `🚫 Transaction failed! You couldn't afford it!`, ephemeral: true });
                 return interaction.reply({ content: `🎨 Color set to: **${hexColor}**!`, ephemeral: true });
@@ -5110,7 +5110,7 @@ module.exports = {
                             ...CARROT_RESET_SET
                         }
                     },
-                    { new: true }
+                    { returnDocument: 'after' }
                 );
                 if (!updateRes) return interaction.reply({ content: `🚫 Transaction failed! You couldn't afford it!`, ephemeral: true });
 
@@ -5130,7 +5130,7 @@ module.exports = {
                     const updateRes = await User.findOneAndUpdate(
                         { userId: interaction.user.id, coins: { $gte: cost } },
                         { $inc: { coins: -cost, systemSpent: cost } },
-                        { new: true }
+                        { returnDocument: 'after' }
                     );
                     if (!updateRes) return interaction.reply({ content: `🚫 Transaction failed! You couldn't afford it!`, ephemeral: true });
 
@@ -5143,7 +5143,7 @@ module.exports = {
                 const updateRes = await User.findOneAndUpdate(
                     { userId: interaction.user.id, coins: { $gte: cost } },
                     { $inc: { coins: -cost, systemSpent: cost }, $push: { inventory: 'Streak Freeze' } },
-                    { new: true }
+                    { returnDocument: 'after' }
                 );
                 if (!updateRes) return interaction.reply({ content: `🚫 Transaction failed! You couldn't afford it!`, ephemeral: true });
                 return interaction.reply({ content: `❄️ Bought **Streak Freeze** for **${cost.toLocaleString('en-US')}** coins. It'll auto-activate if you miss a day. D-Don't thank me! (¬_¬)`, ephemeral: true });
@@ -5152,7 +5152,7 @@ module.exports = {
                 const updateRes = await User.findOneAndUpdate(
                     { userId: interaction.user.id, coins: { $gte: cost } },
                     { $inc: { coins: -cost, systemSpent: cost }, $push: { inventory: 'Curse of Mediocrity' } },
-                    { new: true }
+                    { returnDocument: 'after' }
                 );
                 if (!updateRes) return interaction.reply({ content: `🚫 Transaction failed! You couldn't afford it!`, ephemeral: true });
 
@@ -5188,7 +5188,7 @@ module.exports = {
                 const updateRes = await User.findOneAndUpdate(
                     filter,
                     { $inc: { coins: -cost, systemSpent: cost }, $push: { inventory: name } },
-                    { new: true }
+                    { returnDocument: 'after' }
                 );
                 
                 if (!updateRes) return interaction.reply({ content: `🚫 Transaction failed! You couldn't afford it!`, ephemeral: true });
@@ -5212,7 +5212,7 @@ module.exports = {
             const updateRes = await User.findOneAndUpdate(
                 { userId: interaction.user.id, coins: { $gte: cost } },
                 { $inc: { coins: -cost, systemSpent: cost }, $set: { frameColor: hex } },
-                { new: true }
+                { returnDocument: 'after' }
             );
             if (!updateRes) return interaction.reply({ content: `🚫 Transaction failed! You couldn't afford it!`, ephemeral: true });
             
@@ -5254,7 +5254,7 @@ module.exports = {
                     const result = await User.findOneAndUpdate(
                         { userId: interaction.user.id, nuggets: { $gte: clampedCost } },
                         { $inc: incOps },
-                        { new: true }
+                        { returnDocument: 'after' }
                     );
                     if (!result) {
                         return interaction.reply({ content: `\ud83d\udeab Transaction failed! Your nuggets vanished! (\u00ac_\u00ac)`, flags: MessageFlags.Ephemeral });
@@ -5279,7 +5279,7 @@ module.exports = {
                     const result = await User.findOneAndUpdate(
                         { userId: interaction.user.id, coins: { $gte: totalCost } },
                         { $inc: incOps },
-                        { new: true }
+                        { returnDocument: 'after' }
                     );
                     if (!result) {
                         return interaction.reply({ content: `\ud83d\udeab Transaction failed! Your wallet is empty! (\u00ac_\u00ac)`, flags: MessageFlags.Ephemeral });

@@ -31,27 +31,14 @@ Listen closely, idiot, because I'm only going to say this once. You need to set 
 
 ## Step 1: Getting the Boring Stuff
 
-Ugh, fine! First you need **Node.js v18 or higher** and **Git**. If you don't have them, what are you even doing here? Go download them right now:
-- [Node.js](https://nodejs.org/) — Download the **LTS** version, not the experimental one. Don't be reckless!
-- [Git](https://git-scm.com/downloads) — Just install it with default settings, you don't need to configure anything special.
+Ugh, fine! First you need **Node.js v18 or higher**. If you don't have it, what are you even doing here? Go download it right now:
+- [Node.js](https://nodejs.org/) � Download the **LTS** version, not the experimental one. Make sure you check "Add to PATH" when installing, idiot!
 
-Once you have those, open a terminal and clone my code. Don't make any typos!
+You don't even need Git for this. Just go to my GitHub repository, click the green **Code** button, and click **Download ZIP**. Extract it somewhere safe. 
 
-```bash
-git clone <your-repo-link>
-cd tsun
-npm install
-```
+Once you extract it, go into the folder and double-click `StartBot.bat`! 
 
-Okay? Now my main bot has its packages. We still need the web dashboard packages too, so don't close that terminal!
-
-```bash
-cd web
-npm install
-cd ..
-```
-
-If you see errors about missing packages, you probably have the wrong Node.js version. Run `node --version` and make sure it says v18 or higher, you dummy.
+Don't panic when it stops immediately! It's just checking if you have a `.env` file. Since you don't (obviously), it will automatically create a blank one for you from `.env.example` and tell you to fill it out. I even automated the dependency installation and auto-updating so you literally just have to double-click that file. B-but don't think I did it just to make your life easier! It's just more efficient! (�_�)
 
 <br/>
 
@@ -202,12 +189,14 @@ If you want access to owner-only admin commands, go to your `.env` file and fill
 
 **Now Launch!**
 
-Okay, FINALLY everything is ready. Open a terminal in the main folder and type:
-```bash
-npm start
-```
+Okay, FINALLY everything is ready. You already ran `StartBot.bat` once to generate your `.env` file. Now that you filled it out, just double-click `StartBot.bat` again!
 
-To start the web dashboard at the same time, open a **second** terminal, navigate into the `web` folder, and type:
+That batch file will automatically:
+1. Double-check your Node.js dependencies.
+2. Check my GitHub for any new updates and download them directly without Git (yes, I built a custom auto-updater, you're welcome!).
+3. Launch my core system with a brand new colored terminal so you can actually read the logs without getting a headache! (And I even added a massive TSUN ascii art logo at the top... >///<)
+
+To start the web dashboard at the same time, open a terminal, navigate into the `web` folder, and type:
 ```bash
 npm run dev
 ```

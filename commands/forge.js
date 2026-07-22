@@ -247,7 +247,7 @@ module.exports = {
             const result = await User.findOneAndUpdate(
                 { userId: interaction.user.id, nuggets: { $gte: cost }, 'upgrades.walletTier': walletTierFilter },
                 { $inc: { nuggets: -cost, 'upgrades.walletTier': 1 } },
-                { new: true }
+                { returnDocument: 'after' }
             );
 
             if (!result) {
@@ -276,7 +276,7 @@ module.exports = {
             const result = await User.findOneAndUpdate(
                 { userId: interaction.user.id, nuggets: { $gte: cost }, 'upgrades.vaultTier': vaultTierFilter },
                 { $inc: { nuggets: -cost, 'upgrades.vaultTier': 1 } },
-                { new: true }
+                { returnDocument: 'after' }
             );
 
             if (!result) {
@@ -312,7 +312,7 @@ module.exports = {
                         $or: [{ goldenAmuletCount: { $lt: 3 } }, { goldenAmuletCount: { $exists: false } }]
                     },
                     { $inc: { nuggets: -cost, goldenAmuletCount: 1 } },
-                    { new: true }
+                    { returnDocument: 'after' }
                 );
                 if (!result) return interaction.reply({ content: "Purchase failed! Something shifted. Try again! >////<", flags: MessageFlags.Ephemeral });
 
@@ -334,7 +334,7 @@ module.exports = {
                 const result = await User.findOneAndUpdate(
                     { userId: interaction.user.id, nuggets: { $gte: cost }, titanVaultUsed: { $in: [false, null] } },
                     { $inc: { nuggets: -cost }, $set: { titanVaultUsed: true } },
-                    { new: true }
+                    { returnDocument: 'after' }
                 );
                 if (!result) return interaction.reply({ content: "Purchase failed! Something shifted. Try again! >////<", flags: MessageFlags.Ephemeral });
 
@@ -384,7 +384,7 @@ module.exports = {
                 const result = await User.findOneAndUpdate(
                     { userId: interaction.user.id, nuggets: { $gte: cost } },
                     updateOps,
-                    { new: true }
+                    { returnDocument: 'after' }
                 );
                 if (!result) return interaction.reply({ content: "Purchase failed! Something shifted. Try again! >////<", flags: MessageFlags.Ephemeral });
 

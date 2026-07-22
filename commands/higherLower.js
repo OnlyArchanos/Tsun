@@ -289,7 +289,7 @@ async function handle(message, client) {
                 const result = await User.findOneAndUpdate(
                     { userId: userId, coins: { $gte: skipCost } },
                     { $inc: { coins: -skipCost, systemSpent: skipCost } },
-                    { new: true }
+                    { returnDocument: 'after' }
                 );
                 if (!result) {
                     processing = false;
@@ -419,7 +419,7 @@ async function handle(message, client) {
                     await User.findOneAndUpdate(
                         { userId: userId },
                         { $max: { highScore: streak } },
-                        { new: true, upsert: true }
+                        { returnDocument: 'after', upsert: true }
                     );
                     endEmbed.setFooter({ text: `🎉 NEW PERSONAL BEST: ${streak}!` });
                 }

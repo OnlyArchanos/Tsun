@@ -377,7 +377,7 @@ async function handle(message, client) {
         const deductResult = await User.findOneAndUpdate(
             { userId: message.author.id, coins: { $gte: cost } },
             { $inc: { coins: -cost, systemSpent: cost } },
-            { new: true }
+            { returnDocument: 'after' }
         );
         if (!deductResult) return message.reply(`You need at least **${cost.toLocaleString('en-US')} coins** to propose! Go earn some! (¬_¬)`);
 
@@ -644,7 +644,7 @@ async function handle(message, client) {
         const deductResult = await User.findOneAndUpdate(
             { userId: message.author.id, coins: { $gte: cost } },
             { $inc: { coins: -cost, systemSpent: cost } },
-            { new: true }
+            { returnDocument: 'after' }
         );
         if (!deductResult) return message.reply(`You need **${cost.toLocaleString('en-US')} coins** to start a ship battle! (¬_¬)`);
 
@@ -1076,7 +1076,7 @@ async function handleInteraction(interaction, client) {
             const deductResult = await User.findOneAndUpdate(
                 { userId: targetId, coins: { $gte: targetCost } },
                 { $inc: { coins: -targetCost, systemSpent: targetCost } },
-                { new: true }
+                { returnDocument: 'after' }
             );
             if (!deductResult) {
                 return interaction.reply({ content: `You need **${targetCost.toLocaleString('en-US')} coins** to accept! You're too broke for love! (¬_¬)`, flags: MessageFlags.Ephemeral });
@@ -1212,7 +1212,7 @@ async function handleInteraction(interaction, client) {
             const result = await User.findOneAndUpdate(
                 { userId: uid, coins: { $gte: cost } },
                 { $inc: { coins: -cost, systemSpent: cost } },
-                { new: true }
+                { returnDocument: 'after' }
             );
             if (!result) {
                 // Refund anyone already deducted

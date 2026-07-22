@@ -235,7 +235,7 @@ module.exports = {
                     processing: { $ne: true }
                 },
                 { $set: { processing: true } },
-                { new: true }
+                { returnDocument: 'after' }
             );
 
             if (!lockedElection) {
@@ -350,7 +350,7 @@ module.exports = {
                     processing: { $ne: true }
                 },
                 { $set: { processing: true } },
-                { new: true }
+                { returnDocument: 'after' }
             );
 
             if (!el) continue;

@@ -71,7 +71,7 @@ async function handleBuy(ownerId, targetUserId, amount, { Stock, Portfolio, User
     stock = await Stock.findOneAndUpdate(
       { userId: targetUserId },
       { $setOnInsert: { currentPrice: 5000, previousClose: 5000, dailyHigh: 5000, dailyLow: 5000, allTimeHigh: 5000, lastActivityAt: Date.now() } },
-      { upsert: true, new: true }
+      { upsert: true, returnDocument: 'after' }
     );
   }
 
@@ -85,7 +85,7 @@ async function handleBuy(ownerId, targetUserId, amount, { Stock, Portfolio, User
       $expr: { $lte: [{ $add: [{ $ifNull: ['$shares', 0] }, amount] }, MAX_SHARES_PER_USER] }
     },
     { $inc: { shares: amount, totalInvested: totalCost } },
-    { new: true }
+    { returnDocument: 'after' }
   );
 
   let capExceeded = false;
@@ -112,7 +112,7 @@ async function handleBuy(ownerId, targetUserId, amount, { Stock, Portfolio, User
   const buyer = await User.findOneAndUpdate(
     { userId: ownerId, coins: { $gte: totalCost } },
     { $inc: { coins: -totalCost, systemSpent: totalCost } },
-    { new: true }
+    { returnDocument: 'after' }
   );
   
   if (!buyer) {
@@ -120,7 +120,7 @@ async function handleBuy(ownerId, targetUserId, amount, { Stock, Portfolio, User
     const rolledBack = await Portfolio.findOneAndUpdate(
       { ownerId, targetUserId },
       { $inc: { shares: -amount, totalInvested: -totalCost } },
-      { new: true }
+      { returnDocument: 'after' }
     );
     if (rolledBack && rolledBack.shares <= 0) {
       await Portfolio.deleteOne({ _id: rolledBack._id });
@@ -162,7 +162,7 @@ async function handleSell(ownerId, targetUserId, amount, { Stock, Portfolio, Use
   const holding = await Portfolio.findOneAndUpdate(
     { ownerId, targetUserId, shares: { $gte: amount } },
     { $inc: { shares: -amount } },
-    { new: true }
+    { returnDocument: 'after' }
   );
   if (!holding) {
     return NextResponse.json({ error: 'Insufficient shares' }, { status: 400 });

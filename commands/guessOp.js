@@ -550,7 +550,7 @@ module.exports = {
                                         [streakField]: 1
                                     } 
                                 },
-                                { new: true, upsert: true }
+                                { returnDocument: 'after', upsert: true }
                             );
                             
                             // High score atomic pass

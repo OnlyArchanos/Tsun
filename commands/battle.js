@@ -167,7 +167,7 @@ module.exports = {
             const betDeduct = await User.findOneAndUpdate(
                 { userId: interaction.user.id, coins: { $gte: amount } },
                 { $inc: { coins: -amount, systemSpent: amount } },
-                { new: true }
+                { returnDocument: 'after' }
             );
             if (!betDeduct) return interaction.reply({ content: `You're too broke! You only have ${user.coins} coins!`, flags: MessageFlags.Ephemeral });
             console.log(`BET: User ${interaction.user.id} now has ${betDeduct.coins} coins`);
@@ -230,7 +230,7 @@ async function handleImageUpload(message) {
         await User.findOneAndUpdate(
             { userId: message.author.id },
             { $set: { gridUrl: secureUrl } },
-            { upsert: true, new: true }
+            { upsert: true, returnDocument: 'after' }
         );
 
         const successEmbed = new EmbedBuilder().setColor(0x57F287).setDescription("✅ **Grid Updated!**\nNow go fight someone instead of staring at it!");
@@ -958,7 +958,7 @@ async function startGuessGame(message) {
                 const winnerDB = await User.findOneAndUpdate(
                     { userId: winner.user.id },
                     { $inc: { guessWinStreak: 1 } },
-                    { new: true, upsert: true }
+                    { returnDocument: 'after', upsert: true }
                 );
 
                 const newStreak = winnerDB.guessWinStreak || 1;

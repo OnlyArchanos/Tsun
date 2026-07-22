@@ -34,7 +34,7 @@ async function adjustPriceAdditive(userId, delta) {
                 lastActivityAt: now,
             }
         }],
-        { upsert: true, new: true, updatePipeline: true }
+        { upsert: true, returnDocument: 'after', updatePipeline: true }
     );
     return stock;
 }
@@ -58,7 +58,7 @@ async function adjustPriceMultiplicative(userId, factor) {
                 lastActivityAt: now,
             }
         }],
-        { upsert: true, new: true, updatePipeline: true }
+        { upsert: true, returnDocument: 'after', updatePipeline: true }
     );
     return stock;
 }
@@ -222,7 +222,7 @@ async function getOrCreateStock(userId) {
         stock = await Stock.findOneAndUpdate(
             { userId },
             { $setOnInsert: { currentPrice: S.BASE_PRICE, previousClose: S.BASE_PRICE, dailyHigh: S.BASE_PRICE, dailyLow: S.BASE_PRICE, allTimeHigh: S.BASE_PRICE, lastActivityAt: Date.now() } },
-            { upsert: true, new: true }
+            { upsert: true, returnDocument: 'after' }
         );
     }
     return stock;

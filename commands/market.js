@@ -297,7 +297,7 @@ module.exports = {
                     $inc: { coins: -listing.price },
                     $push: { inventory: listing.itemName }
                 },
-                { new: true }
+                { returnDocument: 'after' }
             );
 
             if (!updateRes) {

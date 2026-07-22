@@ -240,7 +240,7 @@ async function executeFishing(context, isCastAgain = false) {
     let user = await User.findOneAndUpdate(
         { userId: authorId },
         { $setOnInsert: { userId: authorId } },
-        { upsert: true, new: true }
+        { upsert: true, returnDocument: 'after' }
     );
     user.fishing = user.fishing || {};
 
@@ -446,7 +446,7 @@ async function executeFishing(context, isCastAgain = false) {
                 filterQuery[`fishing.gear.ownedRods.${targetRodId}`] = { $lt: rodInfo.maxDurability };
             }
 
-            const updateRes = await User.findOneAndUpdate(filterQuery, updateFields, { new: true });
+            const updateRes = await User.findOneAndUpdate(filterQuery, updateFields, { returnDocument: 'after' });
 
             if (!updateRes) {
                 return replyMsg({ content: "Transaction failed! Make sure you still have enough nuggets and the rod durability isn't already full! (¬_¬)" });
@@ -711,7 +711,7 @@ async function executeFishing(context, isCastAgain = false) {
                 $inc: { coins: -charterCost, systemSpent: charterCost },
                 $set: { 'fishing.charterCooldown': now + config.FISHING.CHARTER_COOLDOWN_MS }
             },
-            { new: true }
+            { returnDocument: 'after' }
         );
         if (!deduct) {
             activeGames.delete(authorId);
@@ -1384,7 +1384,7 @@ module.exports = {
                         $inc: { coins: -scaledCost, systemSpent: scaledCost },
                         $set: { 'fishing.biome': biomeId }
                     },
-                    { new: true }
+                    { returnDocument: 'after' }
                 );
                 
                 if (!updateRes) {
