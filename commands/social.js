@@ -10,7 +10,7 @@ function fetchGif(type) {
     return new Promise((resolve) => {
         const req = https.get(`https://nekos.best/api/v2/${type}`, { 
             timeout: 3000,
-            headers: { 'User-Agent': 'TsunBot/1.0 (discord.js)' }
+            headers: { 'User-Agent': 'TsunBot/1.0 (https://github.com/OnlyArchanos/Tsun)' }
         }, (res) => {
             let data = '';
             res.on('data', chunk => data += chunk);
