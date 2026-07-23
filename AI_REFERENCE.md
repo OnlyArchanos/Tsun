@@ -148,7 +148,9 @@ package.json
 **Location:** `config.js` — imported as `const config = require('./config')` by all files.
 
 ```js
-OWNER_ID: '409234534392004608'   // Only this Discord ID can use owner commands
+OWNER_IDS: ['id1', 'id2']   // Array parsed from comma-separated OWNER_ID env var
+isOwner: (id) => boolean     // Use config.isOwner(userId) for ALL owner auth checks — never compare to OWNER_IDS directly
+
 
 CHANNELS: {
   MAIN: 'tsun',

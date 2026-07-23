@@ -8,7 +8,7 @@ const config = require('../config');
 // ==================== CONSTANTS ====================
 const CONFIG = {
     MOD_ROLE: config.ROLES.MOD,
-    OWNER_ID: config.OWNER_ID,
+    isOwner: config.isOwner,
     PURGE_MINS: config.ELECTION.PURGE_MINS,
     APPLY_MINS: config.ELECTION.APPLY_MINS,
     VOTE_MINS: config.ELECTION.VOTE_MINS,
@@ -141,7 +141,7 @@ module.exports = {
     handle: async (message, client) => {
         const cmd = message.content.toLowerCase().split(/\s+/)[0];
 
-        if (message.author.id !== CONFIG.OWNER_ID) {
+        if (!CONFIG.isOwner(message.author.id)) {
             return message.reply({ embeds: [errorEmbed("H-Hah? Only the owner can control elections! Know your place, you worthless trash! (¬_¬)")] });
         }
 
@@ -385,7 +385,7 @@ async function startPurge(channel, election) {
     const mods = guild.members.cache.filter(m =>
         m.roles.cache.has(modRole.id) &&
         !m.user.bot &&
-        m.id !== CONFIG.OWNER_ID &&
+        !CONFIG.isOwner(m.id) &&
         m.manageable
     );
 

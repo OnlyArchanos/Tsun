@@ -185,7 +185,7 @@ If even ONE role is missing or spelled wrong, I'll crash or silently break. Your
 
 **2. Set Your Owner ID (Optional but Recommended)**
 
-If you want access to owner-only admin commands, go to your `.env` file and fill in `OWNER_ID` with your personal Discord User ID. To get your user ID: open Discord, go to Settings → Advanced, and turn on **Developer Mode**. Then right-click your own name anywhere and click **Copy User ID**.
+If you want access to owner-only admin commands, go to your `.env` file and fill in `OWNER_ID` with your personal Discord User ID. To get your user ID: open Discord, go to Settings → Advanced, and turn on **Developer Mode**. Then right-click your own name anywhere and click **Copy User ID**. You can have up to multiple owners by separating IDs with commas — e.g., `OWNER_ID=123456,789012`.
 
 **Now Launch!**
 
@@ -222,7 +222,7 @@ Fine, I'll make a cheat sheet for you since you'll obviously forget where everyt
 | `CLOUDINARY_API_SECRET` | Cloudinary → Settings → API Keys (reveal) | **Yes** |
 | `DASHBOARD_PASSWORD` | Make one up yourself | **Yes** (or I lock you out) |
 | `SESSION_SECRET` | Keyboard smash 30+ chars | **Yes** (or I crash) |
-| `OWNER_ID` | Discord → Settings → Advanced → Developer Mode → right-click yourself | Optional |
+| `OWNER_ID` | Discord User ID(s) — comma-separated for multiple owners: `id1,id2` | Optional |
 | `MAL_CLIENT_ID` | myanimelist.net/apiconfig → Create ID | Optional |
 
 ### `web/.env.local` file (web dashboard)

@@ -3,7 +3,12 @@
 
 module.exports = {
   // === USER IDS ===
-  OWNER_ID: process.env.OWNER_ID,
+  OWNER_IDS: process.env.OWNER_ID
+    ? process.env.OWNER_ID.split(',').map(id => id.trim()).filter(Boolean)
+    : [],
+  isOwner: (id) => process.env.OWNER_ID
+    ? process.env.OWNER_ID.split(',').map(s => s.trim()).filter(Boolean).includes(id)
+    : false,
 
   // === CHANNEL NAMES ===
   CHANNELS: {

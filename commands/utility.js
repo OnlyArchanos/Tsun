@@ -507,7 +507,7 @@ module.exports = {
 
 // --- !RESTOREDAILYSTREAK (OWNER ONLY) ---
         if (cmd === '!restoredailystreak') {
-            if (message.author.id !== config.OWNER_ID) {
+            if (!config.isOwner(message.author.id)) {
                 return message.reply("H-Hah? Only the owner can use this command! Know your place! >///<");
             }
             
@@ -535,7 +535,7 @@ module.exports = {
 
 // --- !RESETSERVER (OWNER ONLY) ---
         if (cmd === '!resetserver') {
-            if (message.author.id !== config.OWNER_ID) {
+            if (!config.isOwner(message.author.id)) {
                 return message.reply("H-Hah? Who do you think you are?! Only the Owner can nuke the server! (¬_¬)");
             }
 
@@ -1036,7 +1036,7 @@ module.exports = {
 
                 // --- SET TARGET (Owner Only) ---
                 if (sub === 'target') {
-                    if (message.author.id !== config.OWNER_ID) return message.reply("H-Hah? Only the Owner can set the target! Know your place! (¬_¬)");
+                    if (!config.isOwner(message.author.id)) return message.reply("H-Hah? Only the Owner can set the target! Know your place! (¬_¬)");
 
                     const amount = parseInt(args[2]?.replace(/,/g, '')); // Allow commas in numbers
                     if (isNaN(amount) || amount < config.ECONOMY.MIN_WEEKLY_GOAL) return message.reply(`Set a valid target! Minimum ${config.ECONOMY.MIN_WEEKLY_GOAL.toLocaleString('en-US')} coins. Usage: \`!goal target 10000000\``);
@@ -1049,7 +1049,7 @@ module.exports = {
 
                 // --- SET REWARD (Owner Only) ---
                 if (sub === 'reward') {
-                    if (message.author.id !== config.OWNER_ID) return message.reply("H-Hah? Only the Owner can set the reward! Know your place! (¬_¬)");
+                    if (!config.isOwner(message.author.id)) return message.reply("H-Hah? Only the Owner can set the reward! Know your place! (¬_¬)");
 
                     const rewardAmount = parseInt(args[2]?.replace(/,/g, '')); // Allow commas in numbers
                     if (isNaN(rewardAmount) || rewardAmount < config.ECONOMY.MIN_WEEKLY_REWARD) return message.reply(`Set a valid reward amount! Minimum ${config.ECONOMY.MIN_WEEKLY_REWARD.toLocaleString('en-US')} coins. Usage: \`!goal reward 10000\``);

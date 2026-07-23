@@ -1525,7 +1525,7 @@ client.on('messageCreate', async (message) => {
     // ---------------------------------------
 
     if (cmd === '!giveaway') {
-        if (message.author.id !== config.OWNER_ID) {
+        if (!config.isOwner(message.author.id)) {
             return message.reply("H-Hah? Only the owner can give away money, you greedy bastard! Know your place! >///< ");
         }
 
@@ -1606,7 +1606,7 @@ client.on('messageCreate', async (message) => {
     }
 
     if (cmd === '!owner') {
-        if (message.author.id !== config.OWNER_ID) {
+        if (!config.isOwner(message.author.id)) {
             return message.reply("H-Hah? Only the TRUE owner can use this command! Baka! >///<");
         }
 
@@ -1635,7 +1635,7 @@ client.on('messageCreate', async (message) => {
     }
 
     if (cmd === '!ban') {
-        if (message.author.id !== config.OWNER_ID) return message.reply("H-Hah? Only the owner can ban people, you idiot! Know your place! >///<");
+        if (!config.isOwner(message.author.id)) return message.reply("H-Hah? Only the owner can ban people, you idiot! Know your place! >///< ");
         const target = message.mentions.users.first();
         if (!target) return message.reply("Tag someone to ban, genius! Usage: `!ban @user [hours]` or `!ban @user` to unban");
         if (target.id === message.author.id) return message.reply("You can't ban yourself, baka!");
@@ -1680,7 +1680,7 @@ client.on('messageCreate', async (message) => {
 
     // === RENAME COMMAND (OWNER ONLY) ===
     if (cmd === '!rename') {
-        if (message.author.id !== config.OWNER_ID) {
+        if (!config.isOwner(message.author.id)) {
             return message.reply("H-Hah? Only the owner can rename people, you idiot! Know your place! >///< ");
         }
         const target = message.mentions.users.first();
@@ -1721,7 +1721,7 @@ client.on('messageCreate', async (message) => {
 
     // === REMOVE RENAME COMMAND (OWNER ONLY) ===
     if (cmd === '!removerename') {
-        if (message.author.id !== config.OWNER_ID) {
+        if (!config.isOwner(message.author.id)) {
             return message.reply("H-Hah? Only the owner can do this, you idiot! Know your place! >///< ");
         }
         const target = message.mentions.users.first();

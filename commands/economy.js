@@ -1177,7 +1177,7 @@ module.exports = {
         // --- !TAX (OWNER ONLY) ---
         if (cmd === '!tax') {
             // Owner check from centralized config
-            if (message.author.id !== config.OWNER_ID) return message.reply("H-Hah? Only the Owner can tax people! Know your place! (¬_¬)");
+            if (!config.isOwner(message.author.id)) return message.reply("H-Hah? Only the Owner can tax people! Know your place! (¬_¬)");
 
             const args = message.content.split(' ');
             const amount = parseInt(args[2]);
@@ -1725,7 +1725,7 @@ module.exports = {
             const rng = Math.random() * 100;
 
             // --- ODDS CONFIGURATION ---
-            const isOwner = message.author.id === config.OWNER_ID;
+            const isOwner = config.isOwner(message.author.id);
             let jackpotThreshold = isOwner ? 8   : (isRich ? 0.5 : 2);
             let sewerThreshold =   isOwner ? 8   : (isRich ? 6.0 : 6);
             let riggedThreshold =  isOwner ? 8   : (isRich ? 14.0 : 8);
@@ -2307,7 +2307,7 @@ module.exports = {
                 const targetUser = await User.findOne({ userId: target.id }).lean();
 
                 // Ownership check — bot owner bypasses
-                if (message.author.id !== config.OWNER_ID) {
+                if (!config.isOwner(message.author.id)) {
                     if (!targetUser?.isSlave) {
                         return message.reply("They're not even a slave! ...W-Why are you trying to rename a free person? Weirdo! (¬_¬)");
                     }
