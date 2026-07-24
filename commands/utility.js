@@ -7,6 +7,9 @@ const { distributeIncome } = require('../utils/income');
 const config = require('../config');
 const MarketListing = require('../models/MarketListing');
 const Auction = require('../models/Auction');
+const Portfolio = require('../models/Portfolio');
+const Stock = require('../models/Stock');
+const StockHistory = require('../models/StockHistory');
 const GACHA_TITLES = require('../config/gachaTitles');
 const { DROP_TABLES, COIN_RANGES, getTimeUntilRotation } = require('../utils/gacha');
 const roleSync = require('../utils/roleSync');
@@ -550,7 +553,7 @@ module.exports = {
 
                     const [
                         totalUsers, loanCount, auctionCount, listingCount,
-                        slaveCount, botBanCount,
+                        slaveCount, botBanCount, portfolioCount, stockCount,
                         topEloUser, topGachaUser, topStreakUser, topChatterUser, topSlaveAgg
                     ] = await Promise.all([
                         User.countDocuments({}),
@@ -559,6 +562,8 @@ module.exports = {
                         MarketListing.countDocuments({ expiresAt: { $gt: new Date() } }),
                         User.countDocuments({ isSlave: true }),
                         User.countDocuments({ botBanExpiry: { $gt: Date.now() } }),
+                        Portfolio.countDocuments({}),
+                        Stock.countDocuments({}),
                         User.findOne({ elo: { $gt: 0 } }).sort({ elo: -1 }).lean(),
                         User.findOne({ gachaBoxesOpened: { $gt: 0 } }).sort({ gachaBoxesOpened: -1 }).lean(),
                         User.findOne({ currentDuelStreak: { $gt: 0 } }).sort({ currentDuelStreak: -1 }).lean(),
@@ -626,9 +631,11 @@ module.exports = {
                             `**🔨 Active auctions to cancel:** ${auctionCount.toLocaleString('en-US')}\n` +
                             `**🏪 Market listings to expire:** ${listingCount.toLocaleString('en-US')}\n` +
                             `**⛓️ Slaves to free:** ${slaveCount.toLocaleString('en-US')}\n` +
-                            `**🚫 Bot-bans to clear:** ${botBanCount.toLocaleString('en-US')}\n\n` +
+                            `**🚫 Bot-bans to clear:** ${botBanCount.toLocaleString('en-US')}\n` +
+                            `**📈 Portfolios to wipe:** ${portfolioCount.toLocaleString('en-US')}\n` +
+                            `**📊 Stocks to reset:** ${stockCount.toLocaleString('en-US')}\n\n` +
                             (hofLines.length > 0 ? `**🏆 End-of-Season Hall of Fame:**\n${hofLines.join('\n')}\n\n` : '') +
-                            `⚠️ **Coins, inventory, prestige items, vault, forge upgrades, fishing gear/inventory/biomes** will all be wiped.\n` +
+                            `⚠️ **Coins, inventory, prestige items, vault, forge upgrades, fishing gear/inventory/biomes, stock portfolios** will all be wiped.\n` +
                             `✅ **ELO, duel stats, alltime chat stats, gridUrl, nuggets, mythic/junk catch counts** will be preserved.\n\n` +
                             `*Type \`!resetserver confirm\` to proceed. There is no undo.*`
                         );
@@ -756,18 +763,24 @@ module.exports = {
                 }
 
                 // ── STEP 2: Delete collections ────────────────────────────────────────
-                await edit('⏳ **Season Reset In Progress...**\n`Step 2/6` — Deleting loans, auctions, and listings...');
+                await edit('⏳ **Season Reset In Progress...**\n`Step 2/6` — Deleting loans, auctions, listings, and stock market...');
 
-                let loanDel = 0, auctionDel = 0, listingDel = 0;
+                let loanDel = 0, auctionDel = 0, listingDel = 0, portfolioDel = 0, stockDel = 0, stockHistoryDel = 0;
                 try {
-                    const [lr, ar, mr] = await Promise.all([
+                    const [lr, ar, mr, pr, sr, shr] = await Promise.all([
                         Loan.deleteMany({}),
                         Auction.deleteMany({}),
-                        MarketListing.deleteMany({})
+                        MarketListing.deleteMany({}),
+                        Portfolio.deleteMany({}),
+                        Stock.deleteMany({}),
+                        StockHistory.deleteMany({})
                     ]);
                     loanDel = lr.deletedCount;
                     auctionDel = ar.deletedCount;
                     listingDel = mr.deletedCount;
+                    portfolioDel = pr.deletedCount;
+                    stockDel = sr.deletedCount;
+                    stockHistoryDel = shr.deletedCount;
                 } catch (e) {
                     console.error('RESET STEP 2 FAILED:', e);
                     return edit(`❌ **ABORTED at Step 2.** Collection delete failed — no user data was changed.\nError: ${e.message}`);
@@ -881,8 +894,19 @@ module.exports = {
                                     'fishing.cooldown': 0,
                                     'fishing.charterCooldown': 0,
                                     'fishing.stats.totalCaught': 0,
-                                    'fishing.stats.heaviestFish': 0
+                                    'fishing.stats.heaviestFish': 0,
                                     // NOTE: fishing.stats.mythicsCaught and junkCaught intentionally NOT reset — lifetime stats
+                                    'fishing.gear.ownedBaits': {},
+                                    'fishing.dailyBounty.claimed': false,
+                                    // --- GACHA DAILY PULLS RESET ---
+                                    'gachaDailyPulls.bronze': 0,
+                                    'gachaDailyPulls.silver': 0,
+                                    'gachaDailyPulls.lastReset': 0,
+                                    // --- DAILY CHAT STATS RESET ---
+                                    'stats.daily.messages': 0,
+                                    'stats.daily.characters': 0,
+                                    'stats.daily.reactionsGiven': 0,
+                                    'stats.daily.reactionsReceived': 0
                                 }
                             }
                         }
@@ -1011,6 +1035,7 @@ module.exports = {
                     `💸 **${loanDel}** loans deleted\n` +
                     `🔨 **${auctionDel}** auctions cancelled\n` +
                     `🏪 **${listingDel}** market listings cleared\n` +
+                    `📈 **${portfolioDel}** portfolios wiped | **${stockDel}** stocks reset | **${stockHistoryDel}** history entries cleared\n` +
                     `🎨 **${roleSuccesses}** role cleanups\n` +
                     `📛 **${nickSuccesses}** nicknames cleared\n` +
                     (warnings.length > 0 ? `\n${warnings.join('\n')}` : '\n✅ No errors.') +

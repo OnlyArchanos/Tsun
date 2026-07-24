@@ -25,6 +25,9 @@ Thumbs.db
 
 # Agent Configuration (Local Overrides)
 .agent/
+.agents/
+skills-lock.json
+
 # Auto-updater state (local only, never commit)
 .update_state.json
 .update_state.json.tmp
