@@ -1725,11 +1725,10 @@ module.exports = {
             const rng = Math.random() * 100;
 
             // --- ODDS CONFIGURATION ---
-            const isOwner = config.isOwner(message.author.id);
-            let jackpotThreshold = isOwner ? 8   : (isRich ? 0.5 : 2);
-            let sewerThreshold =   isOwner ? 8   : (isRich ? 6.0 : 6);
-            let riggedThreshold =  isOwner ? 8   : (isRich ? 14.0 : 8);
-            let headsThreshold =   isOwner ? 90  : (isRich ? 57.0 : 55);
+            let jackpotThreshold = isRich ? 0.5 : 2;
+            let sewerThreshold =   isRich ? 6.0 : 6;
+            let riggedThreshold =  isRich ? 14.0 : 8;
+            let headsThreshold =   isRich ? 57.0 : 55;
             // Tails is the remainder (Rich: 43% | Normal: 47%)
 
             // 1. JACKPOT (Win 3x)
