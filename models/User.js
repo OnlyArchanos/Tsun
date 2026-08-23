@@ -165,6 +165,11 @@ const userSchema = new mongoose.Schema({
         },
         cooldown: { type: Number, default: 0 },
         charterCooldown: { type: Number, default: 0 },
+        autocast: {
+            sessionsToday: { type: Number, default: 0 },
+            lastSessionReset: { type: Number, default: 0 },
+            activeUntil: { type: Number, default: 0 }
+        },
         inventory: [{
             _id: false,
             species: String,

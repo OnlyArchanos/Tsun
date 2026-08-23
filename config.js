@@ -637,6 +637,17 @@ module.exports = {
         glow_worm: { name: "Glow Worm", emoji: '✨', costBase: 5000, costScaleMult: 0.02, maxCost: 500000, description: "+25% Rare+ chance" },
         golden_worm: { name: "Golden Worm", emoji: '🌟', costNuggets: 1, description: "Guarantees UR+ (Used for Charter)" }
       }
+    },
+    // Autocast System (Lazy Rod)
+    AUTOCAST: {
+      UNLOCK_PRESTIGE: 7,
+      UNLOCK_CATCHES: 2500,
+      COST_NUGGETS: 1,
+      DURATION_MS: 600000,       // 10 minutes
+      CAST_INTERVAL_MS: 10000,   // 10 seconds between casts
+      DAILY_CAP: 3,
+      SPEED_MULT: 0.7,
+      JUNK_BONUS: 15             // Added to JUNK weight in drop table
     }
   },
 

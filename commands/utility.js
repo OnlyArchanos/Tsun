@@ -1414,6 +1414,7 @@ module.exports = {
                                 '> `!fish trade @user` — Trade locked fish\n' +
                                 '> `!fish quest` \u2014 Daily bounty quest\n' +
                                 '> `!fish repair [rod_name]` \u2014 Fix your active or specified rod\n' +
+                                '> `!fish autocast` \u2014 AFK fishing! Prestige 7 endgame. **1 \ud83d\udc8e**, runs **10 min**\n' +
                                 '> `!shop` \u2192 **Fishing Gear** for rods & bait'
                         },
                         {
@@ -1486,6 +1487,27 @@ module.exports = {
                                 'Fish sit in your bucket until you sell them with `!fish sell`.\n' +
                                 'Coins from selling go through the normal income pipeline \u2014 prestige bonus, slave tax, loan repayment, all of it.\n\n' +
                                 '*No, you can\'t dodge taxes by being a fisherman. Nice try, baka.* (\u00ac_\u00ac)'
+                        },
+                        {
+                            name: '\u200b',
+                            value: '\u2500\u2500\u2500 **\ud83e\udd16 Autocast (Lazy Rod)** \u2500\u2500\u2500'
+                        },
+                        {
+                            name: '\ud83e\udd16 Autocast \u2014 `!fish autocast`',
+                            value:
+                                '*So you\'re too lazy to even click a button now? Tch... fine, I\'ll do it for you. But don\'t expect the same results.* (\u00ac_\u00ac)\n\n' +
+                                '> \ud83d\udd12 **Unlock:** Prestige **7** + **2,500** total catches\n' +
+                                '> \ud83d\udc8e **Cost:** **1 Nugget** per session\n' +
+                                '> \u23f1\ufe0f **Duration:** **10 minutes** (60 casts, one every 10s)\n' +
+                                '> \ud83d\udcca **Daily Limit:** **3** sessions per day (resets UTC midnight)\n\n' +
+                                '**How it works:** Your rod fishes on autopilot. No buttons, no minigame, zero channel spam. One summary embed when it\'s done.\n\n' +
+                                '**The catch?** *(pun intended)*\n' +
+                                '> \u26a1 Fixed **0.7x** speed \u2014 no Lightning Fast bonus for AFK\n' +
+                                '> \ud83d\uddd1\ufe0f **+15 Junk weight** \u2014 more garbage in your bucket\n' +
+                                '> \ud83e\udeb1 **Bait not used** \u2014 your glow worms stay safe\n' +
+                                '> \ud83c\udfa3 Rod durability still consumed (~46 per session)\n\n' +
+                                '**During autocast:** `!fish sell`, `!fish bag`, `!fish quest`, `!fish trade` all work. Manual `!fish`, `!fish travel`, and `!fish repair` are blocked.\n\n' +
+                                '*It\'s strictly worse than manual fishing. This is a convenience feature for endgame players, not a money printer. I\'m not THAT generous, baka.* (\u00ac_\u00ac)'
                         },
                         {
                             name: '🤝 Fish Trading',
@@ -1591,6 +1613,32 @@ module.exports = {
                                 '> \ud83d\udfe1 **Medium** \u2014 Catch **3-5 UR** fish \u2192 **5x** coins + 50% nugget chance\n' +
                                 '> \ud83d\udd34 **Hard** \u2014 Catch **1-2 Legendary/Mythic** \u2192 **10x** coins + **2 guaranteed nuggets** \ud83d\udc8e\n\n' +
                                 '*D-Don\'t skip your dailies... not that I\'m worried about you or anything!* >///< '
+                        },
+                        {
+                            name: '\u200b',
+                            value: '\u2500\u2500\u2500 **\ud83e\udd16 Autocast Details** \u2500\u2500\u2500'
+                        },
+                        {
+                            name: '\ud83e\udd16 Autocast Commands',
+                            value:
+                                '> `!fish autocast` \u2014 Start a 10-min AFK session (**1 \ud83d\udc8e**)\n' +
+                                '> `!fish autocast stop` \u2014 End early (keeps fish caught so far)\n' +
+                                '> `!fish autocast status` \u2014 Check remaining time & sessions left\n\n' +
+                                '*During autocast, `!fish`, `!fish travel`, and `!fish repair` are blocked. Selling, bag, quests, and trades still work normally. I\'m not a monster.* (\u00ac_\u00ac)'
+                        },
+                        {
+                            name: '\ud83d\udcb8 True Cost Breakdown',
+                            value:
+                                '```\n' +
+                                'Per session:        1 Nugget\n' +
+                                'Rod wear/session:  ~46 durability\n' +
+                                'Max daily (\u00d73):     3 Nuggets + repairs\n' +
+                                '\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\n' +
+                                'Abyssal Rod:       ~4-5 Nuggets/day\n' +
+                                'Deep Sea Rod:      ~5-6 Nuggets/day\n' +
+                                'Carbon Rod:        ~6+ Nuggets/day\n' +
+                                '```\n' +
+                                '*The 1 Nugget activation fee looks cheap, but rod durability is the hidden cost. Abyssal Rod lasts ~3 days of max autocast before needing a 4\ud83d\udc8e repair. D-Don\'t say I didn\'t warn you!* >///< '
                         },
                         {
                             name: '\ud83c\udfc6 Leaderboards',
