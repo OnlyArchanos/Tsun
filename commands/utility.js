@@ -1495,19 +1495,22 @@ module.exports = {
                         {
                             name: '\ud83e\udd16 Autocast \u2014 `!fish autocast`',
                             value:
-                                '*So you\'re too lazy to even click a button now? Tch... fine, I\'ll do it for you. But don\'t expect the same results.* (\u00ac_\u00ac)\n\n' +
+                                '*So you\'re too lazy to even click a button now? Tch... fine, I\'ll do it for you.* (\u00ac_\u00ac)\n\n' +
                                 '> \ud83d\udd12 **Unlock:** Prestige **7** + **2,500** total catches\n' +
                                 '> \ud83d\udc8e **Cost:** **1 Nugget** per session\n' +
                                 '> \u23f1\ufe0f **Duration:** **10 minutes** (60 casts, one every 10s)\n' +
                                 '> \ud83d\udcca **Daily Limit:** **3** sessions per day (resets UTC midnight)\n\n' +
-                                '**How it works:** Your rod fishes on autopilot. No buttons, no minigame, zero channel spam. One summary embed when it\'s done.\n\n' +
-                                '**The catch?** *(pun intended)*\n' +
+                                '**How it works:** Your rod fishes on autopilot. No buttons, no minigame, zero channel spam. One summary embed when it\'s done.'
+                        },
+                        {
+                            name: '\u26a0\ufe0f Autocast Penalties',
+                            value:
                                 '> \u26a1 Fixed **0.7x** speed \u2014 no Lightning Fast bonus for AFK\n' +
                                 '> \ud83d\uddd1\ufe0f **+15 Junk weight** \u2014 more garbage in your bucket\n' +
                                 '> \ud83e\udeb1 **Bait not used** \u2014 your glow worms stay safe\n' +
                                 '> \ud83c\udfa3 Rod durability still consumed (~46 per session)\n\n' +
-                                '**During autocast:** `!fish sell`, `!fish bag`, `!fish quest`, `!fish trade` all work. Manual `!fish`, `!fish travel`, and `!fish repair` are blocked.\n\n' +
-                                '*It\'s strictly worse than manual fishing. This is a convenience feature for endgame players, not a money printer. I\'m not THAT generous, baka.* (\u00ac_\u00ac)'
+                                '**During autocast:** `!fish sell`, `!fish bag`, `!fish quest`, `!fish trade` all work. `!fish`, `!fish travel`, and `!fish repair` are blocked.\n\n' +
+                                '*Strictly worse than manual. Convenience for endgame, not a money printer.* (\u00ac_\u00ac)'
                         },
                         {
                             name: '🤝 Fish Trading',
