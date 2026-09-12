@@ -189,6 +189,15 @@ function buildLoadoutEmbed(user, displayName, isSelf) {
     publicText += `⬆️ **Wallet Tier:** ${walletTier}/5 | **Vault Tier:** ${vaultTier}/5\n`;
     publicText += `🏛️ **Titan Vault:** ${titanVault}`;
 
+    try {
+        const { getUserAutocastTier } = require('./fishing');
+        const acCheck = getUserAutocastTier(user);
+        const autocastStr = acCheck && acCheck.tier > 0
+            ? `Tier ${acCheck.tier} [${acCheck.info.NAME}]`
+            : 'Locked';
+        publicText += `\n⚙️ **Autocast:** ${autocastStr}`;
+    } catch (e) {}
+
     embed.addFields({ name: '🌐 Equipment', value: publicText });
 
     const pinnedFishes = user.fishing?.pinned || [];
@@ -1413,9 +1422,10 @@ module.exports = {
                                 '> `!fish sell <rarity|all>` \u2014 Sell your catches\n' +
                                 '> `!fish trade @user` — Trade locked fish\n' +
                                 '> `!fish quest` \u2014 Daily bounty quest\n' +
-                                '> `!fish repair [rod_name]` \u2014 Fix your active or specified rod\n' +
-                                '> `!fish autocast` \u2014 AFK fishing! Prestige 7 endgame. **1 \ud83d\udc8e**, runs **10 min**\n' +
-                                '> `!shop` \u2192 **Fishing Gear** for rods & bait'
+                                '> `!fish repair [rod_name]` — Fix your active or specified rod\n' +
+                                '> `!fish autocast` — Tiered AFK fishing! 1st run daily is FREE! Don\'t get lazy, baka! (¬_¬)\n' +
+                                '> `!fish autocast tuneup` — Forge upgrades: make your machine suck less!\n' +
+                                '> `!shop` → **Fishing Gear** for rods & bait'
                         },
                         {
                             name: '\u200b',
@@ -1489,28 +1499,25 @@ module.exports = {
                                 '*No, you can\'t dodge taxes by being a fisherman. Nice try, baka.* (\u00ac_\u00ac)'
                         },
                         {
-                            name: '\u200b',
-                            value: '\u2500\u2500\u2500 **\ud83e\udd16 Autocast (Lazy Rod)** \u2500\u2500\u2500'
+                            name: '🤖 Autocast — `!fish autocast`',
+                            value:
+                                '*You\'re seriously too lazy to even press a button yourself?! Ugh... fine, I hooked up some automated machinery so you don\'t starve, idiot!* (¬_¬)\n\n' +
+                                '> ⚙️ **Tier 1 (Clockwork Spool):** Prestige **3** OR **800 catches** + Carbon Rod + 25 Rares *(Beginner rustbucket)*\n' +
+                                '> ⚙️ **Tier 2 (Steam Reel):** Prestige **5** OR **1,600 catches** + Deep Sea Rod + 10 URs *(Now we\'re talking!)*\n' +
+                                '> ⚙️ **Tier 3 (Abyssal Dredger):** Prestige **7** + **2,500 catches** + Abyssal Rod *(Endgame monster machinery)*\n' +
+                                '> 💎 **Activation Cost:** **1st run every day is FREE!** Subsequent runs cost **1 Nugget**\n' +
+                                '> 🛡️ **Durability Shield:** Built-in safeguards absorb wear so your rod doesn\'t snap (Max -8 dur Tier 1, -15 dur Tier 2)\n\n' +
+                                '**How it works:** Your line casts itself while you nap. Zero button spam, one summary reel when it finishes. Don\'t expect me to applaud, baka!'
                         },
                         {
-                            name: '\ud83e\udd16 Autocast \u2014 `!fish autocast`',
+                            name: '⚠️ Autocast Balance & Rules',
                             value:
-                                '*So you\'re too lazy to even click a button now? Tch... fine, I\'ll do it for you.* (\u00ac_\u00ac)\n\n' +
-                                '> \ud83d\udd12 **Unlock:** Prestige **7** + **2,500** total catches\n' +
-                                '> \ud83d\udc8e **Cost:** **1 Nugget** per session\n' +
-                                '> \u23f1\ufe0f **Duration:** **10 minutes** (60 casts, one every 10s)\n' +
-                                '> \ud83d\udcca **Daily Limit:** **3** sessions per day (resets UTC midnight)\n\n' +
-                                '**How it works:** Your rod fishes on autopilot. No buttons, no minigame, zero channel spam. One summary embed when it\'s done.'
-                        },
-                        {
-                            name: '\u26a0\ufe0f Autocast Penalties',
-                            value:
-                                '> \u26a1 Fixed **0.7x** speed \u2014 no Lightning Fast bonus for AFK\n' +
-                                '> \ud83d\uddd1\ufe0f **+15 Junk weight** \u2014 more garbage in your bucket\n' +
-                                '> \ud83e\udeb1 **Bait not used** \u2014 your glow worms stay safe\n' +
-                                '> \ud83c\udfa3 Rod durability still consumed (~46 per session)\n\n' +
-                                '**During autocast:** `!fish sell`, `!fish bag`, `!fish quest`, `!fish trade` all work. `!fish`, `!fish travel`, and `!fish repair` are blocked.\n\n' +
-                                '*Strictly worse than manual. Convenience for endgame, not a money printer.* (\u00ac_\u00ac)'
+                                '> ⚡ **0.7x Fixed Speed:** No lightning reflexes bonus when you\'re asleep at the reel! (¬_¬)\n' +
+                                '> 🗑️ **+15 Junk Weight:** Automation dredges up extra boots and cans. Deal with it.\n' +
+                                '> 🪱 **Bait Disabled:** I\'m not wasting your expensive Glow Worms on an automated spool!\n' +
+                                '> 🪵 **Flimsy Sticks BANNED:** Don\'t even THINK about tying a clockwork motor to a twig, idiot! Buy a real rod! >///<\n' +
+                                '> 📦 **Overflow Auto-Sell:** If your bucket hits 500 fish, I\'ll dump 10 unlocked junk/commons for coins automatically so your bucket doesn\'t overflow with slime.\n\n' +
+                                '*During autocast: `!fish`, `!fish travel`, `!fish repair`, and manual selling are blocked. Quests, bag, and trades still work. I\'m strict, not cruel!* (¬_¬)'
                         },
                         {
                             name: '🤝 Fish Trading',
@@ -1618,30 +1625,37 @@ module.exports = {
                                 '*D-Don\'t skip your dailies... not that I\'m worried about you or anything!* >///< '
                         },
                         {
-                            name: '\u200b',
-                            value: '\u2500\u2500\u2500 **\ud83e\udd16 Autocast Details** \u2500\u2500\u2500'
+                            name: '🤖 Autocast Controls',
+                            value:
+                                '> `!fish autocast` — Start automated fishing (**1st run daily is 100% FREE!**)\n' +
+                                '> `!fish autocast stop` — Reel in early & keep whatever you caught so far\n' +
+                                '> `!fish autocast status` — Check remaining session time & daily runs left\n' +
+                                '> `!fish autocast tuneup` — Check Forge blueprints, recipes & eligible materials\n' +
+                                '> `!fish autocast buy <upgrade>` — Forge a permanent machine upgrade\n' +
+                                '> `!fish autocast help` — View tier requirements & benefits breakdown\n\n' +
+                                '*While running, your rod is locked in the water. Relax and stop bothering me until the reel clicks!* (¬_¬)'
                         },
                         {
-                            name: '\ud83e\udd16 Autocast Commands',
+                            name: '💵 Tiered Sessions & Durability Safeguards',
                             value:
-                                '> `!fish autocast` \u2014 Start a 10-min AFK session (**1 \ud83d\udc8e**)\n' +
-                                '> `!fish autocast stop` \u2014 End early (keeps fish caught so far)\n' +
-                                '> `!fish autocast status` \u2014 Check remaining time & sessions left\n\n' +
-                                '*During autocast, `!fish`, `!fish travel`, and `!fish repair` are blocked. Selling, bag, quests, and trades still work normally. I\'m not a monster.* (\u00ac_\u00ac)'
+                                '```\n' +
+                                'Tier 1 (Clockwork):  5 min  | 30 casts | Max -8 dur  | 1 run/day (Free)\n' +
+                                'Tier 2 (Steam Reel): 8 min  | 48 casts | Max -15 dur | 2 runs/day (Free, 1💎)\n' +
+                                'Tier 3 (Abyssal):    10 min | 60 casts | Normal loss | 3 runs/day (Free, 1💎, 1💎)\n' +
+                                '───────────────────────────────────────────────────────────\n' +
+                                'Built-in shields stop your rod from breaking before you wake up.\n' +
+                                '```\n' +
+                                '*Remember: Flimsy Sticks are banned from autocast! Get a real rod, idiot!* >///<'
                         },
                         {
-                            name: '\ud83d\udcb8 True Cost Breakdown',
+                            name: '🛠️ Forge Tuneups & Micro-Upgrades',
                             value:
-                                '```\n' +
-                                'Per session:        1 Nugget\n' +
-                                'Rod wear/session:  ~46 durability\n' +
-                                'Max daily (\u00d73):     3 Nuggets + repairs\n' +
-                                '\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\n' +
-                                'Abyssal Rod:       ~4-5 Nuggets/day\n' +
-                                'Deep Sea Rod:      ~5-6 Nuggets/day\n' +
-                                'Carbon Rod:        ~6+ Nuggets/day\n' +
-                                '```\n' +
-                                '*The 1 Nugget activation fee looks cheap, but rod durability is the hidden cost. Abyssal Rod lasts ~3 days of max autocast before needing a 4\ud83d\udc8e repair. D-Don\'t say I didn\'t warn you!* >///< '
+                                '*Want your lazy machine to run faster and break less? Bring me materials at the Forge!* (¬_¬)\n\n' +
+                                '> 🧵 **Spool Extension (I/II):** +1 min (+6 casts) / +2 min (+12 casts) — *Let your line soak longer!*\n' +
+                                '> ⚙️ **Reinforced Gears (I/II):** Absorbs 4 / 8 durability wear per run — *Bubble wrap for your precious rods!*\n' +
+                                '> ⚡ **Quick-Reel Ratchet:** Drops cast interval from 10s down to 9s — *Faster reels = more fish in your bucket!*\n' +
+                                '> ♻️ **Junk Compactor:** Instantly crushes trash into clean coins — *No more wasted bucket space!*\n\n' +
+                                '*Check requirements & turn-in costs with `!fish autocast tuneup`! Don\'t blow all your coins in one place, baka!* >///<'
                         },
                         {
                             name: '\ud83c\udfc6 Leaderboards',

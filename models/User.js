@@ -141,7 +141,9 @@ const userSchema = new mongoose.Schema({
             totalCaught: { type: Number, default: 0 },
             heaviestFish: { type: Number, default: 0 },
             mythicsCaught: { type: Number, default: 0 },
-            junkCaught: { type: Number, default: 0 }
+            junkCaught: { type: Number, default: 0 },
+            raresCaught: { type: Number, default: 0 },
+            ursCaught: { type: Number, default: 0 }
         },
         gear: {
             activeRod: { type: String, default: 'flimsy_stick' },
@@ -168,7 +170,14 @@ const userSchema = new mongoose.Schema({
         autocast: {
             sessionsToday: { type: Number, default: 0 },
             lastSessionReset: { type: Number, default: 0 },
-            activeUntil: { type: Number, default: 0 }
+            activeUntil: { type: Number, default: 0 },
+            announcedTier: { type: Number, default: 0 },
+            upgrades: {
+                spoolExt: { type: Number, default: 0 },
+                gearReinforce: { type: Number, default: 0 },
+                rapidRatchet: { type: Boolean, default: false },
+                junkCompactor: { type: Boolean, default: false }
+            }
         },
         inventory: [{
             _id: false,

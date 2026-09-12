@@ -198,6 +198,52 @@ function fishFieldFilter(index, fish) {
     };
 }
 
+function getUserAutocastTier(user) {
+    if (!user) return { tier: 0, reason: 'no_user' };
+    
+    const prestige = user.prestige || 0;
+    const stats = user.fishing?.stats || {};
+    const inventory = user.fishing?.inventory || [];
+    const statsCaught = stats.totalCaught || 0;
+    const invCount = inventory.length;
+    const totalCaught = Math.max(statsCaught, invCount);
+    
+    // Backwards compatibility: calculate effective Rares & URs for legacy fishers
+    const invRares = inventory.filter(f => f && f.rarity === 'RARE').length;
+    const effectiveRares = Math.max(stats.raresCaught || 0, invRares, Math.floor(totalCaught * 0.10));
+    
+    const invUrs = inventory.filter(f => f && f.rarity === 'UR').length;
+    const effectiveUrs = Math.max(stats.ursCaught || 0, invUrs, Math.floor(totalCaught * 0.03));
+    
+    // Check owned rods (Map or Object)
+    const ownedRodsRaw = user.fishing?.gear?.ownedRods || {};
+    const ownedRodsObj = ownedRodsRaw instanceof Map ? Object.fromEntries(ownedRodsRaw) : ownedRodsRaw;
+    const activeRod = user.fishing?.gear?.activeRod || 'flimsy_stick';
+    
+    const hasRod = (rodId) => activeRod === rodId || ownedRodsObj[rodId] !== undefined;
+    
+    const tiers = config.FISHING.AUTOCAST.TIERS;
+    
+    // Check Tier 3: Prestige 7 + 2,500 Catches
+    if (prestige >= tiers[3].UNLOCK_PRESTIGE && totalCaught >= tiers[3].UNLOCK_CATCHES) {
+        return { tier: 3, info: tiers[3], effectiveRares, effectiveUrs, totalCaught, prestige };
+    }
+    
+    // Check Tier 2: Prestige 5 OR (1,600 Catches + Deep Sea Rod + 10 URs)
+    const t2Catches = totalCaught >= tiers[2].UNLOCK_CATCHES && effectiveUrs >= tiers[2].REQ_URS && hasRod(tiers[2].REQ_ROD);
+    if (prestige >= tiers[2].UNLOCK_PRESTIGE || t2Catches) {
+        return { tier: 2, info: tiers[2], effectiveRares, effectiveUrs, totalCaught, prestige };
+    }
+    
+    // Check Tier 1: Prestige 3 OR (800 Catches + Carbon Rod + 25 Rares)
+    const t1Catches = totalCaught >= tiers[1].UNLOCK_CATCHES && effectiveRares >= tiers[1].REQ_RARES && hasRod(tiers[1].REQ_ROD);
+    if (prestige >= tiers[1].UNLOCK_PRESTIGE || t1Catches) {
+        return { tier: 1, info: tiers[1], effectiveRares, effectiveUrs, totalCaught, prestige };
+    }
+    
+    return { tier: 0, effectiveRares, effectiveUrs, totalCaught, prestige };
+}
+
 async function executeFishing(context, isCastAgain = false) {
     const isInteraction = !!context.customId;
     const author = isInteraction ? context.user : context.author;
@@ -225,9 +271,11 @@ async function executeFishing(context, isCastAgain = false) {
         return replyMsg({ content: `I don't know \`!fish ${sub}\`, baka! Use \`!fish\`, \`!fish travel\`, \`!fish bag\`, \`!fish sell all\`, \`!fish repair\`, \`!fish trade\`, \`!fish quest\`, or \`!fish autocast\`. (¬_¬)` });
     }
 
-    // Check if user has active minigame or is in a locked transaction
     if (sub === 'sell' || sub === 'inv' || sub === 'bag' || sub === 'quest' || sub === 'bounty' || sub === 'pin' || sub === 'unpin') {
         if ((sub === 'sell' || sub === 'pin' || sub === 'unpin') && activeGames.get(authorId)) {
+            if (activeAutocastSessions.get(authorId)) {
+                return replyMsg({ content: "Your rod is busy autocasting! Wait until the session finishes or stop it with `!fish autocast stop`, baka! (¬_¬)" });
+            }
             return replyMsg({ content: "You're currently fishing! Finish reeling it in first, baka! (¬_¬)" });
         }
     } else if (sub === 'autocast') {
@@ -612,7 +660,7 @@ async function executeFishing(context, isCastAgain = false) {
 
     // --- AUTOCAST ---
     if (sub === 'autocast') {
-        const args = context.content ? context.content.split(' ') : [];
+        const args = context.content ? context.content.trim().split(/\s+/) : [];
         const autoSub = args[2]?.toLowerCase();
 
         if (autoSub === 'stop') {
@@ -621,22 +669,86 @@ async function executeFishing(context, isCastAgain = false) {
                 return replyMsg({ content: "You don't have an active autocast session to stop, baka! (¬_¬)" });
             }
             session.stopped = true;
-            return; // The interval will detect stopped flag and finalize
+            if (!session.processing && typeof session.runCatch === 'function') {
+                session.runCatch();
+            }
+            return replyMsg({ content: "Stopped your autocast session! Reeling in your line now... (¬_¬)" });
         }
 
         if (autoSub === 'status') {
+            const freshUser = await User.findOne({ userId: authorId }).select('fishing prestige').lean();
+            const tierCheck = getUserAutocastTier(freshUser);
+            if (tierCheck.tier === 0) {
+                return replyMsg({ content: "You haven't unlocked Autocast yet, baka! Reach **Prestige 3** or **800 catches** with a Carbon Rod first! (¬_¬)" });
+            }
+            const dailyCap = tierCheck.info.DAILY_CAP;
             const session = activeAutocastSessions.get(authorId);
             if (!session) {
-                const freshUser = await User.findOne({ userId: authorId }).select('fishing.autocast prestige').lean();
                 const ac = freshUser?.fishing?.autocast || {};
                 const today = new Date(); today.setUTCHours(0, 0, 0, 0);
                 const sessionsUsed = (ac.lastSessionReset || 0) >= today.getTime() ? (ac.sessionsToday || 0) : 0;
-                return replyMsg({ content: `📊 **Autocast Status:** No active session.\nSessions today: **${sessionsUsed}/${config.FISHING.AUTOCAST.DAILY_CAP}** used. (¬_¬)` });
+                const nextCost = tierCheck.info.COST_NUGGETS_ARRAY[sessionsUsed] ?? 1;
+                const costNote = sessionsUsed < dailyCap ? (nextCost === 0 ? "Next run: **Free**" : `Next run: **${nextCost} Nugget**`) : "Daily limit reached";
+                return replyMsg({ content: `📊 **Autocast Status (${tierCheck.info.NAME}):** No active session.\nSessions today: **${sessionsUsed}/${dailyCap}** used. (${costNote}) (¬_¬)` });
             }
             const remaining = Math.max(0, Math.ceil((session.endsAt - Date.now()) / 1000));
             const mins = Math.floor(remaining / 60);
             const secs = remaining % 60;
-            return replyMsg({ content: `📊 **Autocast Status:** Running! **${mins}:${secs.toString().padStart(2, '0')}** remaining. ${session.catches.length} fish caught so far. (¬_¬)` });
+            return replyMsg({ content: `📊 **Autocast Status (${session.tierInfo.NAME}):** Running! **${mins}:${secs.toString().padStart(2, '0')}** remaining. ${session.catches.length} fish caught so far. (¬_¬)` });
+        }
+
+        if (autoSub === 'help') {
+            const freshUser = await User.findOne({ userId: authorId }).select('fishing prestige').lean();
+            const tierCheck = getUserAutocastTier(freshUser);
+            let statusLine = "You haven't unlocked a thing! Go fish manually like a normal person first! (¬_¬)";
+            if (tierCheck.tier === 3) {
+                statusLine = "Look at you, flexing **Tier 3: Abyssal Dredger**! D-Don't let it get to your head, baka! >///<";
+            } else if (tierCheck.tier === 2) {
+                statusLine = "You've got **Tier 2: Steam-Powered Reel** running! Not completely hopeless after all... (¬_¬)";
+            } else if (tierCheck.tier === 1) {
+                statusLine = "Clanking along with **Tier 1: Clockwork Spool**. Keep grinding, rookie! (¬_¬)";
+            }
+
+            const helpEmbed = new EmbedBuilder()
+                .setColor(0x9B59B6)
+                .setTitle("🤖 Autocast System (Tiered AFK Fishing)")
+                .setDescription(
+                    `*Too lazy to reel fish yourself? Set up automated spools!* (¬_¬)\n\n` +
+                    `📊 **Your Status:** ${statusLine}\n\n` +
+                    `⚙️ **Tier 1: Clockwork Spool** *(Entry-level automated crank)*\n` +
+                    `> • **Unlock:** Prestige 3 OR (800 catches + Carbon Rod + 25 Rares)\n` +
+                    `> • **Session:** 5 min (30 casts) | Durability shield: Max -8 loss\n` +
+                    `> • **Daily Limit:** 1 run/day (**FREE**)\n\n` +
+                    `⚙️ **Tier 2: Steam-Powered Reel** *(Heavy-duty pressurized spool)*\n` +
+                    `> • **Unlock:** Prestige 5 OR (1,600 catches + Deep Sea Rod + 10 URs)\n` +
+                    `> • **Session:** 8 min (48 casts) | Durability shield: Max -15 loss\n` +
+                    `> • **Daily Limit:** 2 runs/day (1st run: **FREE**, 2nd: **1 Nugget**)\n\n` +
+                    `⚙️ **Tier 3: Abyssal Dredger** *(Industrial deep-sea powerhouse)*\n` +
+                    `> • **Unlock:** Prestige 7 + 2,500 catches + Abyssal Rod\n` +
+                    `> • **Session:** 10 min (60 casts) | Full depth & normal wear\n` +
+                    `> • **Daily Limit:** 3 runs/day (1st run: **FREE**, 2nd & 3rd: **1 Nugget**)\n\n` +
+                    `🕹️ **Autocast Commands:**\n` +
+                    `> • \`!fish autocast\` — Start your session (**1st run daily is 100% FREE!**)\n` +
+                    `> • \`!fish autocast status\` — Check remaining time & daily runs left\n` +
+                    `> • \`!fish autocast stop\` — Reel in early & keep whatever you caught\n` +
+                    `> • \`!fish autocast tuneup\` — View Forge blueprints & material stockpiles\n` +
+                    `> • \`!fish autocast buy <upgrade>\` — Forge a permanent machine upgrade\n` +
+                    `> • \`!fish autocast help\` — View this guide`
+                )
+                .setFooter({ text: "Flimsy Sticks are BANNED! Hook a motor to a twig and I'll snap it myself, baka! (¬_¬)" });
+            return replyMsg({ embeds: [helpEmbed] });
+        }
+
+        if (autoSub === 'tuneup' || autoSub === 'tuneups' || autoSub === 'upgrades') {
+            return handleAutocastTuneupMenu(context);
+        }
+
+        if (autoSub === 'buy') {
+            return handleAutocastBuy(context, args);
+        }
+
+        if (autoSub && autoSub !== 'start') {
+            return replyMsg({ content: `I don't know \`!fish autocast ${autoSub}\`, baka! Use \`!fish autocast\`, \`!fish autocast status\`, \`!fish autocast stop\`, \`!fish autocast tuneup\`, or \`!fish autocast help\`. (¬_¬)` });
         }
 
         // --- ACTIVATION ---
@@ -1029,6 +1141,8 @@ async function executeFishing(context, isCastAgain = false) {
                 $max: { 'fishing.stats.heaviestFish': fishWeight },
                 $push: { 'fishing.inventory': { species, weight: fishWeight, rarity: roll.tier, value: fishValue } }
             };
+            if (roll.tier === 'RARE') updateQuery.$inc['fishing.stats.raresCaught'] = 1;
+            if (roll.tier === 'UR') updateQuery.$inc['fishing.stats.ursCaught'] = 1;
 
             // Check Bounty Progress
             let bountyNotice = "";
@@ -1191,7 +1305,12 @@ const handleBag = async (context, client, user, page = 0) => {
     
     const formatName = str => str.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
 
-    let desc = `📍 **Biome:** ${formatName(biome)} | 🎣 **Rod:** ${formatName(activeRod)} (${durabilityText})\n\n`;
+    const tierCheck = getUserAutocastTier(user);
+    const tierBadge = tierCheck.tier > 0 
+        ? `⚙️ **Autocast:** Tier ${tierCheck.tier} [${tierCheck.info.NAME}]`
+        : `⚙️ **Autocast:** Locked`;
+
+    let desc = `📍 **Biome:** ${formatName(biome)} | 🎣 **Rod:** ${formatName(activeRod)} (${durabilityText})\n${tierBadge}\n\n`;
 
     if (pinned.length > 0) {
         desc += `📌 **Pinned Fishes:**\n` + pinned.map(p => `• ${p}`).join('\n') + `\n\n`;
@@ -1260,27 +1379,340 @@ const handleBag = async (context, client, user, page = 0) => {
     }
 };
 
+async function handleAutocastTuneupMenu(context) {
+    const authorId = context.author.id;
+    const user = await User.findOne({ userId: authorId }).lean();
+    if (!user) return context.reply({ content: "I can't find your data! Try `!fish` first, baka! (¬_¬)" });
+
+    const upgrades = user.fishing?.autocast?.upgrades || {};
+    const inv = user.fishing?.inventory || [];
+    const pinned = user.fishing?.pinned || [];
+    const isFishPinned = (pList, fish) => pList.some(p => typeof p === 'string' && (p === fish.species || p.includes(fish.species)));
+    const unlockedCounts = { COMMON: 0, RARE: 0, UR: 0, JUNK: 0 };
+    for (const f of inv) {
+        if (f && !f.locked && !isFishPinned(pinned, f) && unlockedCounts[f.rarity] !== undefined) {
+            unlockedCounts[f.rarity]++;
+        }
+    }
+
+    const cfg = config.FISHING.AUTOCAST.UPGRADES;
+    const spoolLvl = upgrades.spoolExt || 0;
+    const gearLvl = upgrades.gearReinforce || 0;
+    const rapidActive = !!upgrades.rapidRatchet;
+    const compactorActive = !!upgrades.junkCompactor;
+
+    // Spool Extension
+    let spoolText = '';
+    if (spoolLvl >= 2) {
+        spoolText = `⭐ **Level 2/2 (MAX)** — +2 min duration (+12 casts). Maximum line capacity unlocked!`;
+    } else {
+        const nextCfg = cfg.spool[spoolLvl + 1];
+        const coinStr = `${nextCfg.COINS.toLocaleString()} c`;
+        const nugStr = nextCfg.NUGGETS > 0 ? `, ${nextCfg.NUGGETS} Nuggets` : '';
+        const fishReqs = [];
+        for (const [r, count] of Object.entries(nextCfg.FISH_REQ || {})) {
+            fishReqs.push(`${unlockedCounts[r] || 0}/${count} ${r}`);
+        }
+        const fishStr = fishReqs.length > 0 ? ` + ${fishReqs.join(', ')}` : '';
+        spoolText = `**Level ${spoolLvl}/2** ➔ Next: **${nextCfg.NAME}**\n` +
+            `> *${nextCfg.DESC}*\n` +
+            `> 💵 **Cost:** ${coinStr}${nugStr}${fishStr}\n` +
+            `> 🔒 **Req:** Tier ${nextCfg.REQ_TIER} Autocast\n` +
+            `> 🛒 \`!fish autocast buy spool\` — *Expand that spool already!*`;
+    }
+
+    // Reinforced Gears
+    let gearText = '';
+    if (gearLvl >= 2) {
+        gearText = `⭐ **Level 2/2 (MAX)** — Absorbs up to 8 durability wear per session. Your rod won't snap now!`;
+    } else {
+        const nextCfg = cfg.reinforce[gearLvl + 1];
+        const coinStr = `${nextCfg.COINS.toLocaleString()} c`;
+        const nugStr = `, ${nextCfg.NUGGETS} Nuggets`;
+        gearText = `**Level ${gearLvl}/2** ➔ Next: **${nextCfg.NAME}**\n` +
+            `> *${nextCfg.DESC}*\n` +
+            `> 💵 **Cost:** ${coinStr}${nugStr}\n` +
+            `> 🔒 **Req:** Tier ${nextCfg.REQ_TIER} Autocast\n` +
+            `> 🛒 \`!fish autocast buy reinforce\` — *Reinforce it before you snap another rod!*`;
+    }
+
+    // Quick-Reel Ratchet
+    let ratchetText = '';
+    if (rapidActive) {
+        ratchetText = `⭐ **INSTALLED** — Reel interval reduced to 9s! Stop blinking or you'll miss the catches!`;
+    } else {
+        const rCfg = cfg.ratchet;
+        ratchetText = `**Not Installed** ➔ **${rCfg.NAME}**\n` +
+            `> *${rCfg.DESC}*\n` +
+            `> 💵 **Cost:** ${rCfg.COINS.toLocaleString()} c, ${rCfg.NUGGETS} Nuggets\n` +
+            `> 🔒 **Req:** Tier 2 Autocast, Prestige 5, 1,800 catches\n` +
+            `> 🛒 \`!fish autocast buy ratchet\` — *Spin that reel faster, idiot!*`;
+    }
+
+    // Junk Compactor
+    let compactorText = '';
+    if (compactorActive) {
+        compactorText = `⭐ **INSTALLED** — Auto-recycles junk directly into coins! Your bucket stays spotless!`;
+    } else {
+        const cCfg = cfg.compactor;
+        compactorText = `**Not Installed** ➔ **${cCfg.NAME}**\n` +
+            `> *${cCfg.DESC}*\n` +
+            `> 💵 **Cost:** ${cCfg.COINS.toLocaleString()} c, ${cCfg.NUGGETS} Nuggets + ${unlockedCounts.JUNK || 0}/100 Junk\n` +
+            `> 🔒 **Req:** Prestige 4, 1,200 catches\n` +
+            `> 🛒 \`!fish autocast buy compactor\` — *Crush that smelly garbage into coins!*`;
+    }
+
+    const embed = new EmbedBuilder()
+        .setColor(0xE67E22)
+        .setTitle("🛠️ Autocast Forge — Machine Tuneups")
+        .setDescription(
+            "*Tch... so you want me to pimp out your automated fishing machine? Fine, but I don't work for free, idiot! Bring me coins, nuggets, and clean recycled fish!* (¬_¬)\n" +
+            "*Safety Note: Locked (🔒) and Pinned (📌) fish in your bucket are NEVER touched! I'm not a thief! >///<*"
+        )
+        .addFields(
+            { name: "🧵 Spool Extension", value: spoolText },
+            { name: "⚙️ Reinforced Gears", value: gearText },
+            { name: "⚡ Quick-Reel Ratchet", value: ratchetText },
+            { name: "♻️ Junk Compactor", value: compactorText }
+        )
+        .setFooter({ text: "Use !fish autocast buy <upgrade> — Don't blame me when you're completely broke, baka! (¬_¬)" });
+
+    return context.reply({ embeds: [embed] });
+}
+
+async function handleAutocastBuy(context, args) {
+    const authorId = context.author.id;
+    const replyMsg = (opts) => context.reply(opts);
+
+    // Guard against running concurrent session or active minigame during Forge turn-in
+    if (activeAutocastSessions.get(authorId)) {
+        return replyMsg({ content: "You can't tune up your machine while it's actively running, idiot! Stop it first with `!fish autocast stop`! (¬_¬)" });
+    }
+    if (activeGames.get(authorId)) {
+        return replyMsg({ content: "You're busy fishing right now! Reel in your line first before visiting the Forge, baka! (¬_¬)" });
+    }
+
+    const target = args[3]?.toLowerCase();
+
+    if (!target) {
+        return replyMsg({ content: "Which tuneup are you trying to buy, idiot?! Use `!fish autocast buy <spool|reinforce|ratchet|compactor>`! (¬_¬)" });
+    }
+
+    let upgradeKey = null;
+    if (target === 'spool' || target === 'spool_ext' || target === 'spool_extension') upgradeKey = 'spool';
+    else if (target === 'reinforce' || target === 'gears' || target === 'reinforced') upgradeKey = 'reinforce';
+    else if (target === 'ratchet' || target === 'quick' || target === 'quick_reel') upgradeKey = 'ratchet';
+    else if (target === 'compactor' || target === 'junk' || target === 'junk_compactor') upgradeKey = 'compactor';
+
+    if (!upgradeKey) {
+        return replyMsg({ content: `I don't know what tuneup \`${target}\` is, baka! Use \`spool\`, \`reinforce\`, \`ratchet\`, or \`compactor\`! (¬_¬)` });
+    }
+
+    const user = await User.findOne({ userId: authorId }).lean();
+    if (!user) return replyMsg({ content: "I can't find your data! Try `!fish` first, baka! (¬_¬)" });
+
+    const cfgAll = config.FISHING.AUTOCAST.UPGRADES;
+    const tierCheck = getUserAutocastTier(user);
+    const upgrades = user.fishing?.autocast?.upgrades || {};
+    const prestige = user.prestige || 0;
+    const totalCaught = tierCheck.totalCaught;
+
+    let targetCfg = null;
+    let targetField = '';
+    let currentVal = 0;
+    let nextVal = 0;
+    let isBoolean = false;
+
+    if (upgradeKey === 'spool') {
+        targetField = 'spoolExt';
+        currentVal = upgrades.spoolExt || 0;
+        if (currentVal >= 2) {
+            return replyMsg({ content: "Your Spool Extension is already at max level, idiot! (¬_¬)" });
+        }
+        nextVal = currentVal + 1;
+        targetCfg = cfgAll.spool[nextVal];
+    } else if (upgradeKey === 'reinforce') {
+        targetField = 'gearReinforce';
+        currentVal = upgrades.gearReinforce || 0;
+        if (currentVal >= 2) {
+            return replyMsg({ content: "Your Reinforced Gears are already at max level, idiot! (¬_¬)" });
+        }
+        nextVal = currentVal + 1;
+        targetCfg = cfgAll.reinforce[nextVal];
+    } else if (upgradeKey === 'ratchet') {
+        targetField = 'rapidRatchet';
+        isBoolean = true;
+        if (upgrades.rapidRatchet) {
+            return replyMsg({ content: "You already installed the Quick-Reel Ratchet, baka! (¬_¬)" });
+        }
+        nextVal = true;
+        targetCfg = cfgAll.ratchet;
+    } else if (upgradeKey === 'compactor') {
+        targetField = 'junkCompactor';
+        isBoolean = true;
+        if (upgrades.junkCompactor) {
+            return replyMsg({ content: "You already installed the Junk Compactor, baka! (¬_¬)" });
+        }
+        nextVal = true;
+        targetCfg = cfgAll.compactor;
+    }
+
+    // Check prerequisites
+    if (targetCfg.REQ_TIER && tierCheck.tier < targetCfg.REQ_TIER) {
+        return replyMsg({ content: `You need to unlock Autocast Tier **${targetCfg.REQ_TIER}** before crafting this tuneup, idiot! (You are currently Tier ${tierCheck.tier}) (¬_¬)` });
+    }
+    if (targetCfg.REQ_PRESTIGE && prestige < targetCfg.REQ_PRESTIGE) {
+        return replyMsg({ content: `You need Prestige **${targetCfg.REQ_PRESTIGE}** for this tuneup! (You are Prestige ${prestige}) (¬_¬)` });
+    }
+    if (targetCfg.REQ_CATCHES && totalCaught < targetCfg.REQ_CATCHES) {
+        return replyMsg({ content: `You need at least **${targetCfg.REQ_CATCHES.toLocaleString()}** lifetime catches for this! (You have ${totalCaught.toLocaleString()}) (¬_¬)` });
+    }
+
+    // Check coins and nuggets
+    if ((user.coins || 0) < targetCfg.COINS) {
+        return replyMsg({ content: `You're too broke! You need **${targetCfg.COINS.toLocaleString()} coins** for this tuneup! (¬_¬)` });
+    }
+    if (targetCfg.NUGGETS > 0 && (user.nuggets || 0) < targetCfg.NUGGETS) {
+        return replyMsg({ content: `You need **${targetCfg.NUGGETS} Nuggets** to forge this! (You only have ${user.nuggets || 0}) (¬_¬)` });
+    }
+
+    // Check fish turn-in requirements
+    const inv = user.fishing?.inventory || [];
+    const pinned = user.fishing?.pinned || [];
+    const isFishPinned = (pList, fish) => pList.some(p => typeof p === 'string' && (p === fish.species || p.includes(fish.species)));
+    const indicesToConsume = [];
+    const fishSummary = [];
+
+    if (targetCfg.FISH_REQ && Object.keys(targetCfg.FISH_REQ).length > 0) {
+        for (const [rarity, needed] of Object.entries(targetCfg.FISH_REQ)) {
+            const availableIndices = [];
+            for (let i = 0; i < inv.length; i++) {
+                const f = inv[i];
+                if (f && f.rarity === rarity && !f.locked && !isFishPinned(pinned, f) && !indicesToConsume.includes(i)) {
+                    availableIndices.push(i);
+                }
+            }
+            if (availableIndices.length < needed) {
+                return replyMsg({
+                    content: `You don't have enough unlocked, unpinned **${rarity}** fish in your bucket! Need **${needed}**, but you only have **${availableIndices.length}** eligible! (¬_¬)`
+                });
+            }
+            indicesToConsume.push(...availableIndices.slice(0, needed));
+            fishSummary.push(`${needed} ${rarity}`);
+        }
+    }
+
+    // Atomic execution
+    const matchConditions = {
+        userId: authorId,
+        coins: { $gte: targetCfg.COINS }
+    };
+    if (targetCfg.NUGGETS > 0) {
+        matchConditions.nuggets = { $gte: targetCfg.NUGGETS };
+    }
+    if (isBoolean) {
+        matchConditions[`fishing.autocast.upgrades.${targetField}`] = { $ne: true };
+    } else {
+        matchConditions[`fishing.autocast.upgrades.${targetField}`] = currentVal;
+    }
+
+    const unsetObj = {};
+    for (const idx of indicesToConsume) {
+        unsetObj[`fishing.inventory.${idx}`] = 1;
+        matchConditions[`fishing.inventory.${idx}.species`] = inv[idx].species;
+        matchConditions[`fishing.inventory.${idx}.rarity`] = inv[idx].rarity;
+    }
+
+    const updateQuery = {
+        $inc: { coins: -targetCfg.COINS },
+        $set: {
+            [`fishing.autocast.upgrades.${targetField}`]: nextVal
+        }
+    };
+    if (indicesToConsume.length > 0) {
+        updateQuery.$unset = unsetObj;
+    }
+    if (targetCfg.NUGGETS > 0) {
+        updateQuery.$inc.nuggets = -targetCfg.NUGGETS;
+    }
+
+    const updateRes = await User.updateOne(matchConditions, updateQuery);
+    if (updateRes.modifiedCount === 0) {
+        return replyMsg({ content: "Transaction failed! Your inventory or balances changed while processing. Try again, baka! (¬_¬)" });
+    }
+
+    // Pull nulls from unset fish
+    if (indicesToConsume.length > 0) {
+        await User.updateOne({ userId: authorId }, { $pull: { 'fishing.inventory': null } });
+    }
+
+    const matStr = fishSummary.length > 0 ? ` and turned in **${fishSummary.join(', ')}**` : '';
+    const nugStr = targetCfg.NUGGETS > 0 ? ` + **${targetCfg.NUGGETS} Nuggets**` : '';
+
+    const embed = new EmbedBuilder()
+        .setColor(0x2ECC71)
+        .setTitle(`🛠️ Tuneup Installed — ${targetCfg.NAME}!`)
+        .setDescription(
+            `*Clank, hiss, whir...* Your machine just got an upgrade!\n\n` +
+            `Paid **${targetCfg.COINS.toLocaleString()} coins**${nugStr}${matStr}.\n\n` +
+            `✨ **Perk Activated:** ${targetCfg.DESC}\n\n` +
+            `*Don't get cocky! Even with top-tier gear, active fishers can still outfish you, idiot!* >///<`
+        )
+        .setFooter({ text: "Tsun Engineering Dept. — Permanent Autocast Tuneup" });
+
+    return replyMsg({ embeds: [embed] });
+}
+
 async function executeAutocast(context, client) {
     const author = context.author;
     const authorId = author.id;
 
     const replyMsg = async (opts) => context.reply(opts);
 
-    // Check if already running
-    if (activeAutocastSessions.get(authorId)) {
-        return replyMsg({ content: "You already have an autocast session running! Use `!fish autocast stop` to end it, or wait. (¬_¬)" });
+    // Check if already running or locked
+    if (activeGames.get(authorId) || activeAutocastSessions.get(authorId)) {
+        if (activeAutocastSessions.get(authorId)) {
+            return replyMsg({ content: "You already have an autocast session running! Use `!fish autocast stop` to end it, or wait. (¬_¬)" });
+        }
+        return replyMsg({ content: "H-Hey! You already have your rod cast somewhere else! Finish that first, idiot! (¬_¬)" });
     }
+    // Set lock immediately to block concurrent command spam while resolving DB
+    activeGames.set(authorId, true);
+
+    const unlockFail = (msg) => {
+        activeGames.delete(authorId);
+        return replyMsg(msg);
+    };
 
     // Fetch user
     const user = await User.findOne({ userId: authorId }).lean();
-    if (!user) return replyMsg({ content: "I can't find your data! Try `!fish` first, baka! (¬_¬)" });
+    if (!user) return unlockFail({ content: "I can't find your data! Try `!fish` first, baka! (¬_¬)" });
 
-    // Unlock gate: Prestige + catches
-    if ((user.prestige || 0) < config.FISHING.AUTOCAST.UNLOCK_PRESTIGE) {
-        return replyMsg({ content: `🔒 Autocast requires **Prestige ${config.FISHING.AUTOCAST.UNLOCK_PRESTIGE}**! You're only Prestige ${user.prestige || 0}. Keep grinding, baka! (¬_¬)` });
+    // Tier qualification check (dual-track)
+    const tierCheck = getUserAutocastTier(user);
+    if (tierCheck.tier === 0) {
+        return unlockFail({
+            content: `🔒 **Autocast is Locked!** You need either:\n` +
+                `> 💰 **Wealth Route:** Prestige **3** (You have: Prestige ${tierCheck.prestige})\n` +
+                `> 🎣 **Fisherman Route:** **800** catches, **25** Rares & Carbon Rod (You have: **${tierCheck.totalCaught}** catches, **${tierCheck.effectiveRares}** rares)\n\n` +
+                `*Keep grinding, baka! I'm not doing your chores for free!* (¬_¬)`
+        });
     }
-    if ((user.fishing?.stats?.totalCaught || 0) < config.FISHING.AUTOCAST.UNLOCK_CATCHES) {
-        return replyMsg({ content: `🔒 Autocast requires **${config.FISHING.AUTOCAST.UNLOCK_CATCHES.toLocaleString('en-US')} total catches**! You only have ${(user.fishing?.stats?.totalCaught || 0).toLocaleString('en-US')}. Fish more, idiot! (¬_¬)` });
+
+    const tierNum = tierCheck.tier;
+    const tierInfo = tierCheck.info;
+
+    // Flimsy stick guard & rod info
+    const activeRodId = user.fishing?.gear?.activeRod || 'flimsy_stick';
+    const rodInfo = getRodInfo(activeRodId);
+    if (activeRodId === 'flimsy_stick') {
+        return unlockFail({ content: "You think you can hook an automated clockwork spool to a fragile wooden branch?! Buy a real rod first, idiot! (¬_¬)" });
+    }
+
+    // Broken rod guard (prevent wasting daily runs/nuggets on 0 durability rod)
+    const rodDur = user.fishing?.gear?.rodDurability || 0;
+    if (rodDur <= 0) {
+        return unlockFail({ content: `Your ${rodInfo.emoji} **${rodInfo.name}** is broken (0 durability)! Repair it with \`!fish repair\` before asking me to autocast for you, idiot! (¬_¬)` });
     }
 
     // Daily cap check (reset at UTC midnight)
@@ -1289,45 +1721,53 @@ async function executeAutocast(context, client) {
     const ac = user.fishing?.autocast || {};
     const sessionsUsed = (ac.lastSessionReset || 0) >= todayMs ? (ac.sessionsToday || 0) : 0;
 
-    if (sessionsUsed >= config.FISHING.AUTOCAST.DAILY_CAP) {
-        return replyMsg({ content: `🚫 You've used all **${config.FISHING.AUTOCAST.DAILY_CAP}** autocast sessions today! Come back tomorrow, baka! (¬_¬)` });
+    if (sessionsUsed >= tierInfo.DAILY_CAP) {
+        return unlockFail({ content: `🚫 You've used all **${tierInfo.DAILY_CAP}** ${tierInfo.NAME} sessions today! Come back tomorrow, baka! (¬_¬)` });
     }
 
-    // Nugget check
-    if ((user.nuggets || 0) < config.FISHING.AUTOCAST.COST_NUGGETS) {
-        return replyMsg({ content: `🚫 You need **${config.FISHING.AUTOCAST.COST_NUGGETS} Nugget(s)** for autocast! You have ${user.nuggets || 0}. (¬_¬)` });
+    // Cost calculation (1st run free: cost = 0)
+    const sessionCost = tierInfo.COST_NUGGETS_ARRAY[sessionsUsed] ?? 1;
+    if (sessionCost > 0 && (user.nuggets || 0) < sessionCost) {
+        return unlockFail({ content: `🚫 You need **${sessionCost} Nugget(s)** for this autocast session! You have ${user.nuggets || 0}. (¬_¬)` });
     }
 
     // Bucket check
     const invLen = user.fishing?.inventory?.length || 0;
     if (invLen >= (config.FISHING.MAX_INVENTORY || 500)) {
-        return replyMsg({ content: `Your bucket is overflowing with ${invLen} fish! Sell some first before autocasting! (¬_¬)` });
+        return unlockFail({ content: `Your bucket is overflowing with ${invLen} fish! Sell some first before autocasting! (¬_¬)` });
     }
 
-    // Deduct nugget + increment sessions atomically
+    // Upgrades & Modifiers
+    const userUpgrades = user.fishing?.autocast?.upgrades || {};
+    const spoolLvl = userUpgrades.spoolExt || 0;
+    const extraDurationMs = spoolLvl * 60000;
+    const totalDurationMs = tierInfo.DURATION_MS + extraDurationMs;
+    const gearAbsorbCap = userUpgrades.gearReinforce === 2 ? 8 : (userUpgrades.gearReinforce === 1 ? 4 : 0);
+
+    // Deduct nugget (if > 0) + increment sessions atomically
+    const filterQuery = { userId: authorId };
     const sessionUpdate = {
-        $inc: { nuggets: -config.FISHING.AUTOCAST.COST_NUGGETS },
         $set: {
             'fishing.autocast.sessionsToday': sessionsUsed + 1,
             'fishing.autocast.lastSessionReset': todayMs,
-            'fishing.autocast.activeUntil': Date.now() + config.FISHING.AUTOCAST.DURATION_MS
+            'fishing.autocast.activeUntil': Date.now() + totalDurationMs
         }
     };
+    if (sessionCost > 0) {
+        filterQuery.nuggets = { $gte: sessionCost };
+        sessionUpdate.$inc = { nuggets: -sessionCost };
+    }
+
     const deductRes = await User.findOneAndUpdate(
-        { userId: authorId, nuggets: { $gte: config.FISHING.AUTOCAST.COST_NUGGETS } },
+        filterQuery,
         sessionUpdate,
         { returnDocument: 'after' }
     );
     if (!deductRes) {
-        return replyMsg({ content: "Transaction failed! You don't have enough nuggets anymore! (¬_¬)" });
+        return unlockFail({ content: "Transaction failed! Make sure you still meet the requirements! (¬_¬)" });
     }
 
-    // Lock
-    activeGames.set(authorId, true);
-
     // Gather gear info
-    const activeRodId = deductRes.fishing?.gear?.activeRod || 'flimsy_stick';
-    const rodInfo = getRodInfo(activeRodId);
     const userBiomeId = deductRes.fishing?.biome || 'shallow_pond';
     const biomeInfo = config.FISHING.BIOMES[userBiomeId] || config.FISHING.BIOMES.shallow_pond;
 
@@ -1335,7 +1775,17 @@ async function executeAutocast(context, client) {
     const session = {
         authorId,
         channelId: context.channel.id,
-        endsAt: Date.now() + config.FISHING.AUTOCAST.DURATION_MS,
+        endsAt: Date.now() + totalDurationMs,
+        totalDurationMs,
+        tierNum,
+        tierInfo,
+        userUpgrades,
+        gearAbsorbCap,
+        gearAbsorbedSoFar: 0,
+        junkCompactedCount: 0,
+        junkCompactedValue: 0,
+        maxDurabilityLoss: tierInfo.MAX_DURABILITY_LOSS,
+        durabilityLostSoFar: 0,
         catches: [],
         castCount: 0,
         stopped: false,
@@ -1343,22 +1793,31 @@ async function executeAutocast(context, client) {
         stopReason: null,
         processing: false,
         startDurability: deductRes.fishing?.gear?.rodDurability || 0,
-        userCoins: deductRes.coins || 0
+        userCoins: deductRes.coins || 0,
+        runCatch: null
     };
     activeAutocastSessions.set(authorId, session);
 
     // Show start embed
+    const costText = sessionCost === 0 ? "Free (Daily Bonus)" : `${sessionCost} Nugget`;
+    const spoolText = spoolLvl > 0 ? ` *(+${spoolLvl}m Spool Extension)*` : '';
+    const speedText = userUpgrades.rapidRatchet ? '⚡ **Speed:** 9s interval (Ratchet Boosted!)' : '⚡ **Speed:** Fixed 0.7x (10s interval)';
+    const durShieldText = gearAbsorbCap > 0
+        ? `🛡️ **Durability Shield:** Max -${tierInfo.MAX_DURABILITY_LOSS} loss (Gears absorb first ${gearAbsorbCap})`
+        : `🛡️ **Durability Shield:** Max -${tierInfo.MAX_DURABILITY_LOSS} loss`;
+
     const startEmbed = new EmbedBuilder()
         .setColor(0x9B59B6)
-        .setTitle("🤖 Autocast Activated!")
+        .setTitle(`🤖 Autocast Activated — ${tierInfo.NAME}`)
         .setThumbnail(author.displayAvatarURL({ dynamic: true }))
         .setDescription(
-            `Paid **${config.FISHING.AUTOCAST.COST_NUGGETS} Nugget**. Your ${rodInfo.emoji} **${rodInfo.name}** is fishing on autopilot for **10 minutes**.\n\n` +
+            `Paid **${costText}**. Your ${rodInfo.emoji} **${rodInfo.name}** is fishing on autopilot for **${totalDurationMs / 60000} minutes**${spoolText}.\n\n` +
             `📍 **Biome:** ${biomeInfo.emoji} ${biomeInfo.name}\n` +
-            `⚡ **Speed:** Fixed 0.7x (lazy fishing penalty)\n` +
-            `🪱 **Bait:** Not used during autocast\n\n` +
+            `${speedText}\n` +
+            `🪱 **Bait:** Not used during autocast\n` +
+            `${durShieldText}\n\n` +
             `*I'll post a summary when it's done. Don't bother me until then! (¬_¬)*\n\n` +
-            `Use \`!fish autocast stop\` to end early. Sessions today: **${sessionsUsed + 1}/${config.FISHING.AUTOCAST.DAILY_CAP}**`
+            `Use \`!fish autocast stop\` to end early. Sessions today: **${sessionsUsed + 1}/${tierInfo.DAILY_CAP}**`
         );
     await replyMsg({ embeds: [startEmbed] }).catch(e => {
         console.error("Autocast start embed failed:", e);
@@ -1377,14 +1836,54 @@ async function executeAutocast(context, client) {
 
             session.castCount++;
 
-            // Re-check bucket capacity
+            // Re-check bucket capacity & in-loop overflow liquidation
             const capCheck = await User.exists({ userId: authorId, ...getInventoryCapacityFilter() });
             if (!capCheck) {
-                session.stopped = true;
-                session.stopReason = 'bucket_full';
-                clearInterval(session.intervalId);
-                await finalizeAutocast(session, author, context.channel, activeRodId, rodInfo, biomeInfo, client);
-                return;
+                const maxCap = config.FISHING.MAX_INVENTORY || 500;
+                const freshUser = await User.findOne({ userId: authorId }).select('fishing.inventory fishing.pinned').lean();
+                const currentInv = freshUser?.fishing?.inventory || [];
+                const pinnedList = freshUser?.fishing?.pinned || [];
+
+                if (currentInv.length >= maxCap) {
+                    // Find up to 10 discardable (unpinned & unlocked JUNK and COMMON fish)
+                    const isFishPinned = (pList, fish) => pList.some(p => typeof p === 'string' && (p === fish.species || p.includes(fish.species)));
+                    const discardableIndices = [];
+                    for (let i = 0; i < currentInv.length; i++) {
+                        const f = currentInv[i];
+                        if (f && (f.rarity === 'JUNK' || f.rarity === 'COMMON') && !f.locked && !isFishPinned(pinnedList, f)) {
+                            discardableIndices.push(i);
+                            if (discardableIndices.length >= 10) break;
+                        }
+                    }
+
+                    if (discardableIndices.length >= 10) {
+                        const batchToSell = discardableIndices.map(i => currentInv[i]);
+                        const sellValue = batchToSell.reduce((sum, f) => sum + (f.value || 0), 0);
+
+                        const unsetObj = {};
+                        const matchConditions = { userId: authorId };
+                        for (const idx of discardableIndices) {
+                            unsetObj[`fishing.inventory.${idx}`] = 1;
+                            matchConditions[`fishing.inventory.${idx}.species`] = currentInv[idx].species;
+                            matchConditions[`fishing.inventory.${idx}.rarity`] = currentInv[idx].rarity;
+                        }
+
+                        const updateRes = await User.updateOne(matchConditions, { $unset: unsetObj });
+                        if (updateRes.modifiedCount > 0) {
+                            await User.updateOne({ userId: authorId }, { $pull: { 'fishing.inventory': null } });
+                            await distributeIncome(authorId, sellValue);
+                            session.autoSoldFishCount = (session.autoSoldFishCount || 0) + batchToSell.length;
+                            session.autoSoldValue = (session.autoSoldValue || 0) + sellValue;
+                        }
+                    } else {
+                        // Truly full of Rare+ or Locked fish -> Stop safely
+                        session.stopped = true;
+                        session.stopReason = 'bucket_full';
+                        clearInterval(session.intervalId);
+                        await finalizeAutocast(session, author, context.channel, activeRodId, rodInfo, biomeInfo, client);
+                        return;
+                    }
+                }
             }
 
             // Re-check rod isn't broken (for non-flimsy)
@@ -1431,17 +1930,44 @@ async function executeAutocast(context, client) {
                 const junkName = await getJunkName(context.guild);
                 const value = Math.floor(Math.random() * 10) + 1;
 
-                const durLoss = config.FISHING.GEAR.DURABILITY_LOSS.JUNK || 0;
-                const updateQuery = {
-                    $inc: { 'fishing.stats.junkCaught': 1, 'fishing.stats.totalCaught': 1 },
-                    $push: { 'fishing.inventory': { species: junkName, weight: 0, rarity: 'JUNK', value: value } }
-                };
-                if (activeRodId !== 'flimsy_stick') updateQuery.$inc['fishing.gear.rodDurability'] = -durLoss;
+                let rawDurLoss = config.FISHING.GEAR.DURABILITY_LOSS.JUNK || 0;
+                let effectiveDurLoss = rawDurLoss;
+                if (session.gearAbsorbCap > 0 && session.gearAbsorbedSoFar < session.gearAbsorbCap && effectiveDurLoss > 0) {
+                    const absorb = Math.min(effectiveDurLoss, session.gearAbsorbCap - session.gearAbsorbedSoFar);
+                    session.gearAbsorbedSoFar += absorb;
+                    effectiveDurLoss -= absorb;
+                }
+                const allowedLoss = Math.max(0, (session.maxDurabilityLoss || 999) - (session.durabilityLostSoFar || 0));
+                const durLoss = Math.min(effectiveDurLoss, allowedLoss);
+                session.durabilityLostSoFar = (session.durabilityLostSoFar || 0) + durLoss;
 
-                await User.updateOne({ userId: authorId, ...getInventoryCapacityFilter() }, updateQuery);
-                await normalizeFishingGear(authorId);
+                if (session.userUpgrades?.junkCompactor) {
+                    // Junk Compactor: Crush junk directly into coins without filling inventory!
+                    await distributeIncome(authorId, value);
+                    session.junkCompactedCount = (session.junkCompactedCount || 0) + 1;
+                    session.junkCompactedValue = (session.junkCompactedValue || 0) + value;
 
-                session.catches.push({ species: junkName, weight: 0, rarity: 'JUNK', value: value });
+                    const updateQuery = {
+                        $inc: { 'fishing.stats.junkCaught': 1, 'fishing.stats.totalCaught': 1 }
+                    };
+                    if (activeRodId !== 'flimsy_stick' && durLoss > 0) updateQuery.$inc['fishing.gear.rodDurability'] = -durLoss;
+
+                    await User.updateOne({ userId: authorId }, updateQuery);
+                    await normalizeFishingGear(authorId);
+
+                    session.catches.push({ species: `${junkName} (Compacted)`, weight: 0, rarity: 'JUNK', value: value });
+                } else {
+                    const updateQuery = {
+                        $inc: { 'fishing.stats.junkCaught': 1, 'fishing.stats.totalCaught': 1 },
+                        $push: { 'fishing.inventory': { species: junkName, weight: 0, rarity: 'JUNK', value: value } }
+                    };
+                    if (activeRodId !== 'flimsy_stick' && durLoss > 0) updateQuery.$inc['fishing.gear.rodDurability'] = -durLoss;
+
+                    await User.updateOne({ userId: authorId, ...getInventoryCapacityFilter() }, updateQuery);
+                    await normalizeFishingGear(authorId);
+
+                    session.catches.push({ species: junkName, weight: 0, rarity: 'JUNK', value: value });
+                }
             } else {
                 // Successful catch
                 let baseValue = getScalingValue(session.userCoins, config.FISHING.REWARD_BASE);
@@ -1453,7 +1979,17 @@ async function executeAutocast(context, client) {
                 if (fishWeight > 999999999) fishWeight = 999999999;
                 const species = getRandomSpecies(roll.tier, userBiomeId);
 
-                const durLoss = config.FISHING.GEAR.DURABILITY_LOSS[roll.tier] || 1;
+                const rawDurLoss = config.FISHING.GEAR.DURABILITY_LOSS[roll.tier] || 1;
+                let effectiveDurLoss = rawDurLoss;
+                if (session.gearAbsorbCap > 0 && session.gearAbsorbedSoFar < session.gearAbsorbCap) {
+                    const absorb = Math.min(effectiveDurLoss, session.gearAbsorbCap - session.gearAbsorbedSoFar);
+                    session.gearAbsorbedSoFar += absorb;
+                    effectiveDurLoss -= absorb;
+                }
+                const allowedLoss = Math.max(0, (session.maxDurabilityLoss || 999) - (session.durabilityLostSoFar || 0));
+                const durLoss = Math.min(effectiveDurLoss, allowedLoss);
+                session.durabilityLostSoFar = (session.durabilityLostSoFar || 0) + durLoss;
+
                 const updateQuery = {
                     $inc: {
                         'fishing.stats.totalCaught': 1,
@@ -1462,7 +1998,10 @@ async function executeAutocast(context, client) {
                     $max: { 'fishing.stats.heaviestFish': fishWeight },
                     $push: { 'fishing.inventory': { species, weight: fishWeight, rarity: roll.tier, value: fishValue } }
                 };
-                if (activeRodId !== 'flimsy_stick') updateQuery.$inc['fishing.gear.rodDurability'] = -durLoss;
+                if (roll.tier === 'RARE') updateQuery.$inc['fishing.stats.raresCaught'] = 1;
+                if (roll.tier === 'UR') updateQuery.$inc['fishing.stats.ursCaught'] = 1;
+
+                if (activeRodId !== 'flimsy_stick' && durLoss > 0) updateQuery.$inc['fishing.gear.rodDurability'] = -durLoss;
 
                 // Bounty progress
                 const freshBounty = await User.findOne({ userId: authorId }).select('fishing.dailyBounty').lean();
@@ -1489,16 +2028,27 @@ async function executeAutocast(context, client) {
             }
         } finally {
             session.processing = false;
+            if (session.stopped && !session.finalized) {
+                await finalizeAutocast(session, author, context.channel, activeRodId, rodInfo, biomeInfo, client);
+            }
         }
     };
 
-    // Start the interval
-    session.intervalId = setInterval(runCatch, config.FISHING.AUTOCAST.CAST_INTERVAL_MS);
+    // Attach runCatch to session for responsive manual stopping
+    session.runCatch = runCatch;
+
+    // Start the interval (using Quick-Reel Ratchet speed if active)
+    const castInterval = session.userUpgrades?.rapidRatchet ? 9000 : (tierInfo.CAST_INTERVAL_MS || 10000);
+    session.intervalId = setInterval(runCatch, castInterval);
     // Run the first cast immediately
     runCatch();
 }
 
 async function finalizeAutocast(session, author, channel, activeRodId, rodInfo, biomeInfo, client) {
+    if (session.finalized) return;
+    session.finalized = true;
+    clearInterval(session.intervalId);
+
     const authorId = session.authorId;
     activeAutocastSessions.delete(authorId);
     activeGames.delete(authorId);
@@ -1521,46 +2071,114 @@ async function finalizeAutocast(session, author, channel, activeRodId, rodInfo, 
     // Get end durability
     const endUser = await User.findOne({ userId: authorId }).select('fishing.gear.rodDurability fishing.autocast').lean();
     const endDur = endUser?.fishing?.gear?.rodDurability || 0;
-    const sessionsUsed = endUser?.fishing?.autocast?.sessionsToday || 0;
-    const remaining = config.FISHING.AUTOCAST.DAILY_CAP - sessionsUsed;
+    const today = new Date(); today.setUTCHours(0, 0, 0, 0);
+    const isSameDay = (endUser?.fishing?.autocast?.lastSessionReset || 0) >= today.getTime();
+    const sessionsUsed = isSameDay ? (endUser?.fishing?.autocast?.sessionsToday || 0) : 0;
 
-    const elapsed = Math.min(config.FISHING.AUTOCAST.DURATION_MS, Date.now() - (session.endsAt - config.FISHING.AUTOCAST.DURATION_MS));
+    const tierNum = session.tierNum || 1;
+    const tierInfo = session.tierInfo || config.FISHING.AUTOCAST.TIERS[tierNum];
+    const dailyCap = tierInfo.DAILY_CAP;
+    const remaining = Math.max(0, dailyCap - sessionsUsed);
+
+    const totalDuration = session.totalDurationMs || tierInfo.DURATION_MS;
+    const elapsed = Math.min(totalDuration, Date.now() - (session.endsAt - totalDuration));
     const mins = Math.floor(elapsed / 60000);
     const secs = Math.floor((elapsed % 60000) / 1000);
 
     let stopNote = '';
     if (session.stopReason === 'bucket_full') stopNote = '\n⚠️ *Stopped early — bucket was full!*';
-    else if (session.stopReason === 'rod_broke') stopNote = '\n⚠️ *Stopped early — your rod broke! Use \`!fish repair\` to fix it!*';
+    else if (session.stopReason === 'rod_broke') stopNote = '\n⚠️ *Stopped early — your rod broke! Use `!fish repair` to fix it!*';
     else if (session.stopped) stopNote = '\n*Stopped early by request.*';
 
-    const emojis = config.FISHING.EMOJIS;
-    const lines = [];
+    let totalHaulValue = 0;
+    for (const val of Object.values(rarityValues)) totalHaulValue += val;
+
+    const tableLines = [
+        'Rarity          Count      Est. Value',
+        '─────────────────────────────────────'
+    ];
+
     for (const r of ['JUNK', 'COMMON', 'RARE', 'UR', 'LEGENDARY', 'MYTHIC']) {
         if (rarityCounts[r] > 0) {
-            lines.push(`${emojis[r] || '🐟'} **${r}:** ${rarityCounts[r]}  (worth ~${rarityValues[r].toLocaleString('en-US')}c total)`);
+            const nameCol = r.padEnd(14, ' ');
+            const countCol = rarityCounts[r].toString().padStart(6, ' ');
+            const valCol = `${rarityValues[r].toLocaleString('en-US')} c`.padStart(15, ' ');
+            tableLines.push(`${nameCol} ${countCol} ${valCol}`);
         }
     }
+    tableLines.push('─────────────────────────────────────');
+    tableLines.push(`${'Total'.padEnd(14, ' ')} ${catches.length.toString().padStart(6, ' ')} ${`${totalHaulValue.toLocaleString('en-US')} c`.padStart(15, ' ')}`);
 
-    const durText = activeRodId === 'flimsy_stick' ? 'Infinite' : `${session.startDurability} → ${endDur}`;
+    const durUsed = session.startDurability - endDur;
+    const durText = activeRodId === 'flimsy_stick' ? 'Infinite' : `${session.startDurability} → ${endDur} (-${durUsed} used)`;
+
+    // Dynamic Tsundere Footer based on session luck and overflow events
+    let footerText = "Tch... I watched your line the whole time so it didn't snap. Don't get used to it, baka! (¬_¬)";
+    if (session.stopReason === 'bucket_full') {
+        footerText = "Your bucket is overflowing with slimy fish! Clean it out before you make a mess, idiot! >///<";
+    } else if (session.stopReason === 'rod_broke') {
+        footerText = "Your rod literally snapped in half... I told you to maintain your gear, baka! (¬_¬)";
+    } else if (session.stopped) {
+        footerText = "Pulling your line early? Impatient as always, idiot... (¬_¬)";
+    } else if (rarityCounts.MYTHIC > 0) {
+        footerText = "W-Wait, a MYTHIC?! H-How did YOU pull that off on autopilot?! Pure dumb luck, baka! >///<";
+    } else if (rarityCounts.LEGENDARY > 0) {
+        footerText = "A Legendary catch while you weren't even looking?! D-Don't let it get to your head! >///<";
+    } else if (catches.length === 0) {
+        footerText = "Not a single fish?! Even a sleeping kitten catches more than you did. Pathetic! (¬_¬)";
+    } else if (rarityCounts.JUNK >= Math.ceil(catches.length * 0.5)) {
+        footerText = "Look at all this garbage you dragged up. Literal trash for a trash fisher! (¬_¬)";
+    } else if (session.autoSoldFishCount > 0) {
+        footerText = `Your bucket overflowed so I sold ${session.autoSoldFishCount} of your junk fish! You're welcome, baka! >///<`;
+    } else if (session.junkCompactedCount > 0) {
+        footerText = `Your compactor crunched ${session.junkCompactedCount} pieces of trash into clean coins! Pretty neat invention, I guess... >///<`;
+    } else if (rarityCounts.UR > 0 || rarityCounts.RARE >= 5) {
+        footerText = "Decent haul, I guess... N-Not that I was rooting for you or anything, idiot! >///<";
+    }
 
     const embed = new EmbedBuilder()
-        .setColor(bestCatch && ['LEGENDARY', 'MYTHIC'].includes(bestCatch.rarity) ? RARITY_COLORS[bestCatch.rarity] : 0x9B59B6)
-        .setTitle(`🤖 Autocast Complete! (${mins}:${secs.toString().padStart(2, '0')})`)
-        .setThumbnail(author.displayAvatarURL({ dynamic: true }))
-        .setDescription(
-            `Caught **${catches.length}** fish in **${session.castCount}** casts.${stopNote}\n\n` +
-            (lines.length > 0 ? lines.join('\n') : '*No fish caught...*') +
-            (bestCatch ? `\n\n⭐ **Best Catch:** ${bestCatch.species} (${bestCatch.rarity}) — ${bestCatch.weight.toLocaleString('en-US')} lbs — ${bestCatch.value.toLocaleString('en-US')}c` : '') +
-            `\n\n🎣 **Rod:** ${rodInfo.emoji} ${rodInfo.name} (${durText} durability)` +
-            `\n📍 **Biome:** ${biomeInfo.emoji} ${biomeInfo.name}` +
-            `\n\nSessions remaining today: **${remaining}/${config.FISHING.AUTOCAST.DAILY_CAP}**`
+        .setColor(bestCatch && ['LEGENDARY', 'MYTHIC'].includes(bestCatch.rarity) ? RARITY_COLORS[bestCatch.rarity] || 0xF1C40F : 0x9B59B6)
+        .setTitle(`🤖 Autocast Complete — ${tierInfo.NAME} (Tier ${tierNum})`)
+        .setDescription(`*Session finished in ${mins}m ${secs.toString().padStart(2, '0')}s across ${session.castCount} casts.* (¬_¬)\n${stopNote}`)
+        .addFields(
+            {
+                name: '─── Catch Breakdown ───',
+                value: `\`\`\`\n${tableLines.join('\n')}\n\`\`\``
+            },
+            {
+                name: '─── Session Highlights ───',
+                value:
+                    (bestCatch ? `> ⭐ **Best Catch:** ${bestCatch.species} (${bestCatch.rarity}) — ${bestCatch.weight.toLocaleString('en-US')} lbs — ${bestCatch.value.toLocaleString('en-US')} c\n` : '') +
+                    (session.autoSoldFishCount > 0 ? `> 📦 **Overflow Liquidation:** Auto-sold ${session.autoSoldFishCount} fish (+${(session.autoSoldValue || 0).toLocaleString('en-US')} c via income)\n` : '') +
+                    (session.junkCompactedCount > 0 ? `> ♻️ **Junk Compactor:** Recycled ${session.junkCompactedCount} trash items into +${(session.junkCompactedValue || 0).toLocaleString('en-US')} c\n` : '') +
+                    (session.gearAbsorbedSoFar > 0 ? `> 🛡️ **Reinforced Gears:** Absorbed ${session.gearAbsorbedSoFar} rod durability wear\n` : '') +
+                    `> 📍 **Location:** ${biomeInfo.emoji} ${biomeInfo.name}\n` +
+                    `> 🎣 **Rod Status:** ${rodInfo.emoji} ${rodInfo.name} (${durText})\n` +
+                    `\nDaily Sessions Remaining: **${remaining}/${dailyCap}**`
+            }
         )
-        .setFooter({ text: "Tch... I did all the work while you sat there. Don't get used to it, baka! (¬_¬)" });
+        .setFooter({ text: footerText });
 
     try {
         await channel.send({ content: `<@${authorId}>`, embeds: [embed] });
     } catch (e) {
         console.error("Autocast summary embed failed:", e);
+    }
+
+    // Server milestone announcement for Tier II and III unlocks
+    const announcedTier = endUser?.fishing?.autocast?.announcedTier || 0;
+    if (tierNum >= 2 && tierNum > announcedTier) {
+        await User.updateOne({ userId: authorId }, { $set: { 'fishing.autocast.announcedTier': tierNum } });
+        const milestoneEmbed = new EmbedBuilder()
+            .setColor(tierNum === 3 ? 0xF1C40F : 0x3498DB)
+            .setTitle(`🎉 Autocast Milestone — ${tierInfo.NAME}!`)
+            .setDescription(
+                `Look who upgraded their lazy fishing machinery!\n\n` +
+                `<@${authorId}> has officially deployed **Tier ${tierNum}: ${tierInfo.NAME}**!\n` +
+                `*Session duration expanded to **${tierInfo.DURATION_MS / 60000} minutes** (${Math.floor(tierInfo.DURATION_MS / (tierInfo.CAST_INTERVAL_MS || 10000))} casts)! Don't get cocky, baka!* (¬_¬)`
+            )
+            .setFooter({ text: "Tsun Engineering Dept. — Upgrading lazy fishers since 2026" });
+        await channel.send({ embeds: [milestoneEmbed] }).catch(() => {});
     }
 }
 
@@ -1868,6 +2486,7 @@ module.exports = {
         }
     },
     handleBag,
+    getUserAutocastTier,
     activeGames,
     activeAutocastSessions
 };

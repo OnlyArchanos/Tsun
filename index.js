@@ -911,10 +911,52 @@ app.get('/admin/api/audit', (req, res) => {
 });
 
 // ==================== STARTUP LOGIC ====================
+async function handleInterruptedAutocasts(client) {
+    try {
+        const interruptedUsers = await User.find({
+            'fishing.autocast.activeUntil': { $gt: 0 }
+        }).select('userId fishing.autocast').lean();
+
+        if (!interruptedUsers || interruptedUsers.length === 0) return;
+        console.log(`[AUTOCAST_BOOT] Found ${interruptedUsers.length} interrupted session(s). Restoring daily charges...`);
+
+        const today = new Date(); today.setUTCHours(0, 0, 0, 0);
+        const todayMs = today.getTime();
+
+        for (const user of interruptedUsers) {
+            const ac = user.fishing?.autocast || {};
+            const isToday = (ac.lastSessionReset || 0) >= todayMs;
+            const sessionsToday = ac.sessionsToday || 0;
+            const restoredSessions = isToday ? Math.max(0, sessionsToday - 1) : 0;
+            
+            // If they were on session 2+ today, refund the 1 Nugget they paid
+            const paidNugget = isToday && sessionsToday >= 2;
+
+            const updateQuery = {
+                $set: {
+                    'fishing.autocast.activeUntil': 0,
+                    'fishing.autocast.sessionsToday': restoredSessions
+                }
+            };
+            if (paidNugget) {
+                updateQuery.$inc = { nuggets: 1 };
+            }
+
+            await User.updateOne({ userId: user.userId }, updateQuery);
+            console.log(`[AUTOCAST_BOOT] Restored session for ${user.userId}${paidNugget ? ' (+1 Nugget refunded)' : ''}`);
+        }
+    } catch (err) {
+        console.error("[AUTOCAST_BOOT] Error during crash sweep:", err);
+    }
+}
+
 client.once('clientReady', async () => {
     console.log("🔌 Connecting to Database...");
     await connectDB();
     console.log(`🚀 Tsun is online as ${client.user.tag}`);
+
+    // Autocast reboot recovery sweep
+    await handleInterruptedAutocasts(client);
 
     // Ensure ServerStats exists for every guild (prevents rotateFeaturedBanner from silently skipping on fresh DB)
     for (const [, guild] of client.guilds.cache) {

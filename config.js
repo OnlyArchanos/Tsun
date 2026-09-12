@@ -640,14 +640,119 @@ module.exports = {
     },
     // Autocast System (Lazy Rod)
     AUTOCAST: {
-      UNLOCK_PRESTIGE: 7,
-      UNLOCK_CATCHES: 2500,
-      COST_NUGGETS: 1,
-      DURATION_MS: 600000,       // 10 minutes
-      CAST_INTERVAL_MS: 10000,   // 10 seconds between casts
-      DAILY_CAP: 3,
-      SPEED_MULT: 0.7,
-      JUNK_BONUS: 15             // Added to JUNK weight in drop table
+      TIERS: {
+        1: {
+          NAME: "Clockwork Spool",
+          UNLOCK_PRESTIGE: 3,
+          UNLOCK_CATCHES: 800,
+          REQ_RARES: 25,
+          REQ_ROD: "carbon_rod",
+          DURATION_MS: 300000,          // 5 minutes
+          CAST_INTERVAL_MS: 10000,      // 10s (30 casts)
+          DAILY_CAP: 1,
+          COST_NUGGETS_ARRAY: [0],      // 1st run: Free
+          MAX_DURABILITY_LOSS: 8
+        },
+        2: {
+          NAME: "Steam-Powered Reel",
+          UNLOCK_PRESTIGE: 5,
+          UNLOCK_CATCHES: 1600,
+          REQ_URS: 10,
+          REQ_ROD: "deep_sea_rod",
+          DURATION_MS: 480000,          // 8 minutes
+          CAST_INTERVAL_MS: 10000,      // 10s (48 casts)
+          DAILY_CAP: 2,
+          COST_NUGGETS_ARRAY: [0, 1],   // 1st run: Free, 2nd run: 1 Nugget
+          MAX_DURABILITY_LOSS: 15
+        },
+        3: {
+          NAME: "Abyssal Dredger",
+          UNLOCK_PRESTIGE: 7,
+          UNLOCK_CATCHES: 2500,
+          REQ_ROD: "abyssal_rod",
+          DURATION_MS: 600000,          // 10 minutes
+          CAST_INTERVAL_MS: 10000,      // 10s (60 casts)
+          DAILY_CAP: 3,
+          COST_NUGGETS_ARRAY: [0, 1, 1],// 1st run: Free, 2nd/3rd: 1 Nugget
+          MAX_DURABILITY_LOSS: 999      // Standard rod loss
+        }
+      },
+      UPGRADES: {
+        spool: {
+          1: {
+            KEY: "spool",
+            LEVEL: 1,
+            NAME: "Spool Extension I",
+            EXTRA_MS: 60000,              // +1 min
+            COINS: 1500000,
+            NUGGETS: 0,
+            FISH_REQ: { COMMON: 150, RARE: 25 },
+            REQ_TIER: 1,
+            DESC: "+1 minute session duration (+6 casts)."
+          },
+          2: {
+            KEY: "spool",
+            LEVEL: 2,
+            NAME: "Spool Extension II",
+            EXTRA_MS: 60000,              // +1 min (+2 min total)
+            COINS: 6000000,
+            NUGGETS: 3,
+            FISH_REQ: { RARE: 50, UR: 10 },
+            REQ_TIER: 2,
+            REQ_PREV_LEVEL: 1,
+            DESC: "+1 additional minute session duration (+12 casts total)."
+          }
+        },
+        reinforce: {
+          1: {
+            KEY: "reinforce",
+            LEVEL: 1,
+            NAME: "Reinforced Gears I",
+            DUR_ABSORB_MAX: 4,
+            COINS: 1500000,
+            NUGGETS: 6,
+            FISH_REQ: {},
+            REQ_TIER: 1,
+            DESC: "Absorbs up to 4 rod durability loss per autocast session."
+          },
+          2: {
+            KEY: "reinforce",
+            LEVEL: 2,
+            NAME: "Reinforced Gears II",
+            DUR_ABSORB_MAX: 8,
+            COINS: 5000000,
+            NUGGETS: 14,
+            FISH_REQ: {},
+            REQ_TIER: 2,
+            REQ_PREV_LEVEL: 1,
+            DESC: "Absorbs up to 8 rod durability loss per autocast session."
+          }
+        },
+        ratchet: {
+          KEY: "ratchet",
+          NAME: "Quick-Reel Ratchet",
+          INTERVAL_MS: 9000,              // 10s -> 9s
+          COINS: 3500000,
+          NUGGETS: 10,
+          FISH_REQ: {},
+          REQ_TIER: 2,
+          REQ_PRESTIGE: 5,
+          REQ_CATCHES: 1800,
+          DESC: "Accelerates reel speed from 10s down to 9s per cast."
+        },
+        compactor: {
+          KEY: "compactor",
+          NAME: "Junk Compactor",
+          COINS: 3000000,
+          NUGGETS: 6,
+          FISH_REQ: { JUNK: 100 },        // 100 recycled junk turn-in
+          REQ_PRESTIGE: 4,
+          REQ_CATCHES: 1200,
+          DESC: "Instantly crushes junk into coins on catch without using bucket space."
+        }
+      },
+      JUNK_BONUS: 15,                   // Added to JUNK weight in drop table
+      SPEED_MULT: 0.7
     }
   },
 
