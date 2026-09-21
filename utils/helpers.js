@@ -170,6 +170,82 @@ function getVaultCap(prestige = 0, vaultTier = 0, titanVaultUsed = false) {
     return totalCap;
 }
 
+/**
+ * Check and enforce the global 1-hour owner command cooldown.
+ * If allowed, atomically stamps lastOwnerCommandAt to now.
+ * @param {string} userId - The owner's Discord user ID
+ * @returns {Promise<{remaining: number}|null>} - null if allowed, { remaining: ms } if on cooldown
+ */
+async function checkOwnerCooldown(userId) {
+    const cooldown = config.TIMING.OWNER_COMMAND_COOLDOWN;
+    const now = Date.now();
+    const cutoff = now - cooldown;
+
+    // 1. Attempt atomic stamp on existing eligible documents (timestamp < cutoff, missing, or null)
+    const result = await User.findOneAndUpdate(
+        {
+            userId,
+            $or: [
+                { lastOwnerCommandAt: { $lt: cutoff } },
+                { lastOwnerCommandAt: { $exists: false } },
+                { lastOwnerCommandAt: null }
+            ]
+        },
+        { $set: { lastOwnerCommandAt: now } },
+        { returnDocument: 'after' }
+    );
+
+    if (result) return null; // Allowed — timestamp has been atomically stamped
+
+    // 2. Either legitimately on cooldown OR user document does not exist yet
+    const user = await User.findOne({ userId }).select('lastOwnerCommandAt').lean();
+
+    if (!user) {
+        // User doc does not exist — create it with current timestamp and allow
+        await User.findOneAndUpdate(
+            { userId },
+            { $set: { lastOwnerCommandAt: now } },
+            { upsert: true }
+        );
+        return null;
+    }
+
+    if (!user.lastOwnerCommandAt || user.lastOwnerCommandAt <= cutoff) {
+        // Document existed with null/missing/0 timestamp — stamp now and allow
+        await User.findOneAndUpdate(
+            { userId },
+            { $set: { lastOwnerCommandAt: now } }
+        );
+        return null;
+    }
+
+    // 3. User is legitimately on cooldown
+    const remaining = (user.lastOwnerCommandAt + cooldown) - now;
+    return { remaining: Math.max(0, remaining) };
+}
+
+/**
+ * Read-only check for owner command cooldown without modifying DB state.
+ * @param {string} userId - The owner's Discord user ID
+ * @returns {Promise<{onCooldown: boolean, remaining: number, expiryUnix: number}>}
+ */
+async function getOwnerCooldownRemaining(userId) {
+    const cooldown = config.TIMING.OWNER_COMMAND_COOLDOWN;
+    const user = await User.findOne({ userId }).select('lastOwnerCommandAt').lean();
+    if (!user || !user.lastOwnerCommandAt) {
+        return { onCooldown: false, remaining: 0, expiryUnix: 0 };
+    }
+
+    const elapsed = Date.now() - user.lastOwnerCommandAt;
+    if (elapsed >= cooldown) {
+        return { onCooldown: false, remaining: 0, expiryUnix: 0 };
+    }
+
+    const remaining = cooldown - elapsed;
+    const expiryUnix = Math.floor((user.lastOwnerCommandAt + cooldown) / 1000);
+    return { onCooldown: true, remaining, expiryUnix };
+}
+
 module.exports = {
     getDisplayName,
     safeRoleOperation,
@@ -177,5 +253,7 @@ module.exports = {
     createCleaningMap,
     getAmuletMultiplier,
     titleCase,
-    getVaultCap
+    getVaultCap,
+    checkOwnerCooldown,
+    getOwnerCooldownRemaining
 };

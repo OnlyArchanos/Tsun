@@ -59,6 +59,7 @@ module.exports = {
     COIN_BAG_REWARD_MAX: 250,
     GUESS_TRIGGER: 220, // Messages in #general to trigger guess
     PHRASE_TRIGGER: 150, // Messages in #general before auto-comment
+    OWNER_COMMAND_COOLDOWN: 3600000, // 1 hour — global cooldown for owner-only commands
   },
 
   // === ECONOMIC CONSTANTS ===

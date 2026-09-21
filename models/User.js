@@ -109,6 +109,7 @@ const userSchema = new mongoose.Schema({
     guessTimeoutExpiry: { type: Number, default: 0 }, // Timestamp when timeout ends
     highScore: { type: Number, default: 0 }, // Higher Lower Best Streak
     botBanExpiry: { type: Number, default: 0 },
+    lastOwnerCommandAt: { type: Number, default: 0 }, // Global owner command cooldown timestamp
     forcedNickname: { type: String, default: null }, // Owner-enforced nickname
     opGuessStreak: { type: Number, default: 0 }, // Consecutive !guess opening wins
     opHighestStreak: { type: Number, default: 0 }, // Highest !guess opening streak

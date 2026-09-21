@@ -5,6 +5,7 @@ const ServerStats = require('../models/ServerStats');
 const Loan = require('../models/Loan');
 const { distributeIncome } = require('../utils/income');
 const config = require('../config');
+const { checkOwnerCooldown, getOwnerCooldownRemaining } = require('../utils/helpers');
 const MarketListing = require('../models/MarketListing');
 const Auction = require('../models/Auction');
 const Portfolio = require('../models/Portfolio');
@@ -529,6 +530,12 @@ module.exports = {
             if (!target || isNaN(dayNum) || dayNum < 0) {
                 return message.reply("Usage: `!restoredailystreak @user [day number]` (¬_¬)");
             }
+
+            const cooldownResult = await checkOwnerCooldown(message.author.id);
+            if (cooldownResult) {
+                const mins = Math.ceil(cooldownResult.remaining / 60000);
+                return message.reply(`You already used an owner command recently! Wait **${mins} minute(s)**, you impatient dictator! (¬_¬)`);
+            }
             
             await User.updateOne(
                 { userId: target.id },
@@ -663,6 +670,12 @@ module.exports = {
                     "Run `!resetserver preview` first to see exactly what will happen.\n" +
                     "Then type `!resetserver confirm` if you are absolutely sure, you maniac!"
                 );
+            }
+
+            const cooldownResult = await checkOwnerCooldown(message.author.id);
+            if (cooldownResult) {
+                const mins = Math.ceil(cooldownResult.remaining / 60000);
+                return message.reply(`You already used an owner command recently! Wait **${mins} minute(s)**, you impatient dictator! (¬_¬)`);
             }
 
             const startTime = Date.now();
@@ -1075,6 +1088,12 @@ module.exports = {
                     const amount = parseInt(args[2]?.replace(/,/g, '')); // Allow commas in numbers
                     if (isNaN(amount) || amount < config.ECONOMY.MIN_WEEKLY_GOAL) return message.reply(`Set a valid target! Minimum ${config.ECONOMY.MIN_WEEKLY_GOAL.toLocaleString('en-US')} coins. Usage: \`!goal target 10000000\``);
 
+                    const cooldownResult = await checkOwnerCooldown(message.author.id);
+                    if (cooldownResult) {
+                        const mins = Math.ceil(cooldownResult.remaining / 60000);
+                        return message.reply(`You already used an owner command recently! Wait **${mins} minute(s)**, you impatient dictator! (¬_¬)`);
+                    }
+
                     stats.weeklyGoal = amount;
                     await stats.save();
 
@@ -1087,6 +1106,12 @@ module.exports = {
 
                     const rewardAmount = parseInt(args[2]?.replace(/,/g, '')); // Allow commas in numbers
                     if (isNaN(rewardAmount) || rewardAmount < config.ECONOMY.MIN_WEEKLY_REWARD) return message.reply(`Set a valid reward amount! Minimum ${config.ECONOMY.MIN_WEEKLY_REWARD.toLocaleString('en-US')} coins. Usage: \`!goal reward 10000\``);
+
+                    const cooldownResult = await checkOwnerCooldown(message.author.id);
+                    if (cooldownResult) {
+                        const mins = Math.ceil(cooldownResult.remaining / 60000);
+                        return message.reply(`You already used an owner command recently! Wait **${mins} minute(s)**, you impatient dictator! (¬_¬)`);
+                    }
 
                     stats.weeklyRewardAmount = rewardAmount;
                     await stats.save();
@@ -1238,6 +1263,96 @@ module.exports = {
 
         // --- !HELP (Main Menu) ---
         if (cmd === '!help') {
+            // --- SECRET: !HELP OWNER (unlisted, owner-only) ---
+            const helpArgs = message.content.split(/\s+/);
+            if (helpArgs[1]?.toLowerCase() === 'owner') {
+                if (!config.isOwner(message.author.id)) {
+                    return message.reply("H-Hah? There's no such page, you nosy little snoop! (¬_¬)");
+                }
+
+                const cdStatus = await getOwnerCooldownRemaining(message.author.id);
+                let statusBanner;
+                if (cdStatus.onCooldown) {
+                    const mins = Math.ceil(cdStatus.remaining / 60000);
+                    statusBanner = `⏳ **Status:** **On Cooldown** — Ready <t:${cdStatus.expiryUnix}:R> (approx. **${mins}m**)\n*Don't even think about running anything right now, baka!* (¬_¬)\n\n`;
+                } else {
+                    statusBanner = `🟢 **Status:** **Ready to Cast**\n*You can use one owner command right now. Choose wisely!* >///<\n\n`;
+                }
+
+                const embed = new EmbedBuilder()
+                    .setColor(0xFF0000)
+                    .setTitle("👑 Owner's Secret Manual")
+                    .setDescription(
+                        "*F-Fine... since you're the owner, I GUESS I have to show you this. Don't let anyone else see it, baka!* >///<\n\n" +
+                        statusBanner +
+                        "All owner commands share a **1-hour global cooldown** — use one and the rest are locked. Election commands are exempt.\n\n" +
+                        "━━━━━━━━━━━━━━━━━━━━━"
+                    )
+                    .addFields(
+                        {
+                            name: '💰 `!giveaway [@user/@role] [amount]`',
+                            value: 'Shower someone (or an entire role) with coins. Add `nuggets` before the mention for premium currency.\n`!giveaway @user 5000` · `!giveaway nuggets @role 10`'
+                        },
+                        {
+                            name: '📉 `!tax [@user/@role] [amount]`',
+                            value: 'IRS raid — forcibly seize coins from a user or role. They can\'t escape. Serves them right! (¬_¬)'
+                        },
+                        {
+                            name: '🚫 `!ban [@user] [hours]`',
+                            value: 'Ban someone from using the bot (0.1–168 hours). Use `!ban @user` or `!ban @user 0` to unban.'
+                        },
+                        {
+                            name: '📛 `!rename [@user] [NewName]`',
+                            value: 'Force a permanent nickname they can\'t escape. Use `!rename @user clear` to free them.'
+                        },
+                        {
+                            name: '📛 `!removerename [@user]`',
+                            value: 'Clear a forced nickname. Same as `!rename @user clear` but lazier. Typical. (¬_¬)'
+                        },
+                        {
+                            name: '👑 `!owner`',
+                            value: 'Self-grant the Owner role in the server. Obviously only works if you\'re actually the owner, idiot.'
+                        },
+                        {
+                            name: '📅 `!restoredailystreak [@user] [day]`',
+                            value: 'Restore someone\'s daily streak to a specific day number. Admin tool for when streaks break unfairly.'
+                        },
+                        {
+                            name: '☢️ `!resetserver [preview/confirm]`',
+                            value: '**NUCLEAR OPTION.** Wipes the entire server economy. Use `preview` first unless you want chaos. D-Don\'t blame me! >///< '
+                        },
+                        {
+                            name: '🎯 `!goal target [amount]` · `!goal reward [amount]`',
+                            value: 'Set the weekly community coin goal target and reward. Everyone works toward this together.'
+                        },
+                        {
+                            name: '⛓️ `!slave rename [@slave] [NewName]`',
+                            value: 'Rename ANY slave — bypasses ownership check. Normal users can only rename their own slaves.'
+                        }
+                    )
+                    .addFields(
+                        {
+                            name: '━━━━━━━━━━━━━━━━━━━━━\n🗳️ Election Commands *(no cooldown)*',
+                            value:
+                                '`!startelection` — Start a new 3-phase election (Purge → Apply → Vote)\n' +
+                                '`!cancelelection` / `!endelection` — Cancel the current election\n' +
+                                '`!electionstatus` — Check phase, candidates, time remaining\n' +
+                                '`!electioncandidates` — List all registered candidates + speeches\n' +
+                                '`!endpoll` / `!endapplications` — Force-skip the current phase timer'
+                        },
+                        {
+                            name: '🛡️ Passive Privileges',
+                            value:
+                                '• **Election Purge Immunity** — You can\'t be voted out as mod\n' +
+                                '• **1-hour cooldown** on all commands above (except elections)\n\n' +
+                                '*N-Now stop reading and go do something useful! I didn\'t write all this for nothing!* (¬_¬)'
+                        }
+                    )
+                    .setFooter({ text: "This page doesn't exist. You saw nothing. (¬_¬)" });
+
+                return message.reply({ embeds: [embed] });
+            }
+
             const menu = new StringSelectMenuBuilder()
                 .setCustomId('help_menu')
                 .setPlaceholder('📖 Select a category...')

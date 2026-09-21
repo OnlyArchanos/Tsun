@@ -14,7 +14,7 @@ const ServerStats = require('./models/ServerStats');
 const BuzzwordCount = require('./models/BuzzwordCount');
 const { checkAndApplyDailyTax } = require('./commands/economy');
 const { distributeIncome } = require('./utils/income');
-const { getDisplayName, createCleaningMap, getVaultCap } = require('./utils/helpers');
+const { getDisplayName, createCleaningMap, getVaultCap, checkOwnerCooldown } = require('./utils/helpers');
 const config = require('./config');
 const BUZZWORD_SET = new Set((config.BUZZWORDS || []).flatMap(g => Array.isArray(g) ? g : [g]).map(w => w.toLowerCase()));
 const phrases = require('./config/phrases');
@@ -1579,8 +1579,15 @@ client.on('messageCreate', async (message) => {
 
         if (isNaN(amount) || amount <= 0) return message.reply("Invalid amount! Usage: `!giveaway [nuggets] @user/@role [amount]`");
 
-        // Check for role mention first
         const targetRole = message.mentions.roles.first();
+        const targetUser = message.mentions.users.first();
+        if (!targetRole && !targetUser) return message.reply("Tag someone or a role to give money to! Usage: `!giveaway [nuggets] @user/@role [amount]`");
+
+        const cooldownResult = await checkOwnerCooldown(message.author.id);
+        if (cooldownResult) {
+            const mins = Math.ceil(cooldownResult.remaining / 60000);
+            return message.reply(`You already used an owner command recently! Wait **${mins} minute(s)**, you impatient dictator! (¬_¬)`);
+        }
         if (targetRole) {
             // Try to fetch all members to ensure we get offline ones, but handle rate limits gracefully
             try {
@@ -1668,6 +1675,12 @@ client.on('messageCreate', async (message) => {
                 return message.reply(`You already have the **${ownerRoleName}** role, dummy! Stop wasting my time! (¬_¬)`);
             }
 
+            const cooldownResult = await checkOwnerCooldown(message.author.id);
+            if (cooldownResult) {
+                const mins = Math.ceil(cooldownResult.remaining / 60000);
+                return message.reply(`You already used an owner command recently! Wait **${mins} minute(s)**, you impatient dictator! (¬_¬)`);
+            }
+
             await member.roles.add(role, "Owner command used");
             return message.reply(`✅ **GRANTED!** You now have the **${ownerRoleName}** role. D-Don't let it go to your head! >///<`);
         } catch (e) {
@@ -1682,23 +1695,35 @@ client.on('messageCreate', async (message) => {
         if (!target) return message.reply("Tag someone to ban, genius! Usage: `!ban @user [hours]` or `!ban @user` to unban");
         if (target.id === message.author.id) return message.reply("You can't ban yourself, baka!");
 
+        const isUnban = !args[2] || parseInt(args[2]) === 0;
+        const banHours = parseFloat(args[2]);
+        if (!isUnban && (isNaN(banHours) || banHours <= 0 || banHours > 168)) {
+            return message.reply("Invalid time! Use hours (0.1-168), you moron! Example: `!ban @user 24` for 24 hours.");
+        }
+
         const targetUser = await User.findOne({ userId: target.id }) || new User({ userId: target.id });
         const displayName = await getDisplayName(target.id, message.guild);
 
         // Unban: No time provided or 0
-        if (!args[2] || parseInt(args[2]) === 0) {
-            // Check if user was actually banned
+        if (isUnban) {
             if (!targetUser.botBanExpiry || targetUser.botBanExpiry <= Date.now()) {
                 return message.reply(`${displayName} isn't banned, dummy! There's nothing to unban! (¬_¬)`);
             }
+
+            const cooldownResult = await checkOwnerCooldown(message.author.id);
+            if (cooldownResult) {
+                const mins = Math.ceil(cooldownResult.remaining / 60000);
+                return message.reply(`You already used an owner command recently! Wait **${mins} minute(s)**, you impatient dictator! (¬_¬)`);
+            }
+
             await User.updateOne({ userId: target.id }, { $set: { botBanExpiry: 0 } });
             return message.reply(`✅ **UNBANNED!** ${displayName} can use the bot again! I-It's not like I missed them or anything! >///<`);
         }
 
-        // Ban: Time in HOURS (max 168 hours = 1 week)
-        const banHours = parseFloat(args[2]);
-        if (isNaN(banHours) || banHours <= 0 || banHours > 168) {
-            return message.reply("Invalid time! Use hours (0.1-168), you moron! Example: `!ban @user 24` for 24 hours.");
+        const cooldownResult = await checkOwnerCooldown(message.author.id);
+        if (cooldownResult) {
+            const mins = Math.ceil(cooldownResult.remaining / 60000);
+            return message.reply(`You already used an owner command recently! Wait **${mins} minute(s)**, you impatient dictator! (¬_¬)`);
         }
 
         const expiryMs = Date.now() + (banHours * 3600000); // hours to ms
@@ -1728,6 +1753,12 @@ client.on('messageCreate', async (message) => {
         const target = message.mentions.users.first();
         if (!target) return message.reply("Tag someone to rename! Usage: `!rename @user [NewName]` or `!rename @user` to clear");
         if (target.id === message.author.id) return message.reply("You can't rename yourself, baka!");
+
+        const cooldownResult = await checkOwnerCooldown(message.author.id);
+        if (cooldownResult) {
+            const mins = Math.ceil(cooldownResult.remaining / 60000);
+            return message.reply(`You already used an owner command recently! Wait **${mins} minute(s)**, you impatient dictator! (¬_¬)`);
+        }
 
         const targetUser = await User.findOne({ userId: target.id }) || new User({ userId: target.id });
         const newName = args.slice(2).join(' ').trim();
@@ -1772,6 +1803,12 @@ client.on('messageCreate', async (message) => {
         const targetUser = await User.findOne({ userId: target.id }).select('forcedNickname').lean();
         if (!targetUser || !targetUser.forcedNickname) {
             return message.reply(`${target.username} doesn't have a forced nickname! They're already free, baka! (¬_¬)`);
+        }
+
+        const cooldownResult = await checkOwnerCooldown(message.author.id);
+        if (cooldownResult) {
+            const mins = Math.ceil(cooldownResult.remaining / 60000);
+            return message.reply(`You already used an owner command recently! Wait **${mins} minute(s)**, you impatient dictator! (¬_¬)`);
         }
 
         await User.updateOne({ userId: target.id }, { $set: { forcedNickname: null } });

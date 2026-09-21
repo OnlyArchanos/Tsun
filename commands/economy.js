@@ -11,7 +11,7 @@ const battleSystem = require('./battle');
 const { distributeIncome } = require('../utils/income');
 const ServerStats = require('../models/ServerStats');
 const GACHA_TITLES = require('../config/gachaTitles');
-const { getDisplayName, createCleaningMap, getVaultCap } = require('../utils/helpers');
+const { getDisplayName, createCleaningMap, getVaultCap, checkOwnerCooldown } = require('../utils/helpers');
 const config = require('../config');
 const roleSync = require('../utils/roleSync');
 const fishingSystem = require('./fishing');
@@ -1182,8 +1182,19 @@ module.exports = {
             const args = message.content.split(' ');
             const amount = parseInt(args[2]);
 
-            // 1. Check for ROLE mention
+            // 1. Check for ROLE or USER mention first
             const targetRole = message.mentions.roles.first();
+            const target = message.mentions.users.first();
+
+            if (!targetRole && !target) return message.reply("Usage: `!tax @user/@role <amount>`");
+            if (isNaN(amount) || amount < 1) return message.reply("Usage: `!tax @user/@role <amount>`");
+
+            const cooldownResult = await checkOwnerCooldown(message.author.id);
+            if (cooldownResult) {
+                const mins = Math.ceil(cooldownResult.remaining / 60000);
+                return message.reply(`You already used an owner command recently! Wait **${mins} minute(s)**, you impatient dictator! (¬_¬)`);
+            }
+
             if (targetRole) {
                 if (isNaN(amount) || amount < 1) return message.reply("Usage: `!tax @role <amount>`");
 
@@ -1235,7 +1246,6 @@ module.exports = {
             }
 
             // 2. USER Mention (Legacy)
-            const target = message.mentions.users.first();
             if (!target || isNaN(amount) || amount < 1) return message.reply("Usage: `!tax @user/@role <amount>`");
 
             const victim = await User.findOne({ userId: target.id });
@@ -2305,13 +2315,20 @@ module.exports = {
 
                 const targetUser = await User.findOne({ userId: target.id }).lean();
 
-                // Ownership check — bot owner bypasses
-                if (!config.isOwner(message.author.id)) {
-                    if (!targetUser?.isSlave) {
-                        return message.reply("They're not even a slave! ...W-Why are you trying to rename a free person? Weirdo! (¬_¬)");
-                    }
-                    if (targetUser.slaveOwner !== message.author.id) {
+                // Ownership check — bot owner bypasses if not their own slave
+                const isOwnSlave = targetUser?.isSlave && targetUser.slaveOwner === message.author.id;
+                if (!isOwnSlave) {
+                    if (!config.isOwner(message.author.id)) {
+                        if (!targetUser?.isSlave) {
+                            return message.reply("They're not even a slave! ...W-Why are you trying to rename a free person? Weirdo! (¬_¬)");
+                        }
                         return message.reply("That's not YOUR slave! Keep your naming fantasies to your own property, idiot! (¬_¬)");
+                    }
+                    // Owner bypass renaming someone else's slave — subject to cooldown
+                    const cooldownResult = await checkOwnerCooldown(message.author.id);
+                    if (cooldownResult) {
+                        const mins = Math.ceil(cooldownResult.remaining / 60000);
+                        return message.reply(`You already used an owner command recently! Wait **${mins} minute(s)**, you impatient dictator! (¬_¬)`);
                     }
                 }
 
