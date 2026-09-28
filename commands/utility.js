@@ -1381,6 +1381,7 @@ module.exports = {
                     new StringSelectMenuOptionBuilder().setLabel('Profile & Relationships').setValue('help_profile').setDescription('!info, !rels, your full player card').setEmoji('📊'),
                     new StringSelectMenuOptionBuilder().setLabel('Fishing — How It Works').setValue('help_fishing').setDescription('Commands, drop rates, how to get rich from fish').setEmoji('🎣'),
                     new StringSelectMenuOptionBuilder().setLabel('Fishing — Gear & World').setValue('help_fishing_gear').setDescription('Rods, bait, biomes, quests, selling').setEmoji('🌊'),
+                    new StringSelectMenuOptionBuilder().setLabel('Talk to Tsun').setValue('help_chat').setDescription('Mentions, replies, memory, and chat controls').setEmoji('💬'),
                 );
 
             const row = new ActionRowBuilder().addComponents(menu);
@@ -2561,6 +2562,32 @@ module.exports = {
                         {
                             name: '🛑 Limits',
                             value: `You can only hold a maximum of **${config.STOCKS.MAX_SHARES_PER_USER} shares** of any single person. Also, the price only changes by ${(config.STOCKS.BUY_PRESSURE * 100).toFixed(0)}% per trade, so rich whales can't manipulate the market to lock you out. Even you can afford to play, baka!`
+                        }
+                    );
+            }
+            else if (val === 'help_chat') {
+                embed.setTitle('💬 Talk to Tsun')
+                    .setDescription("M-Maybe I'll talk to you. Don't make a big deal out of it! >///<")
+                    .addFields(
+                        {
+                            name: 'How to Start',
+                            value: 'Mention me in a configured Tsun chat channel, then ask your question. I only answer when directly addressed.'
+                        },
+                        {
+                            name: 'Continue Naturally',
+                            value: 'Reply directly to my last message to continue without mentioning me again. Conversations are separate for each user and channel.'
+                        },
+                        {
+                            name: 'Temporary Memory',
+                            value: 'I remember up to six recent exchanges for about 30 minutes. Memory is cleared whenever the bot restarts.'
+                        },
+                        {
+                            name: 'Controls',
+                            value: '`!chat status` — Show availability, memory, cooldown, and service health.\n`!chat reset` — Forget your conversation in the current channel.'
+                        },
+                        {
+                            name: 'Tone',
+                            value: 'Tsun uses her adult, foul-mouthed character voice throughout configured chat channels.'
                         }
                     );
             }

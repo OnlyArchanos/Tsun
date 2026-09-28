@@ -3,7 +3,9 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
-    "start": "node launcher.js"
+    "start": "node launcher.js",
+    "test": "node --test tests/chat-config.test.js tests/chat-prompt.test.js tests/chat-style.test.js tests/ai-client.test.js tests/chat-session-store.test.js tests/chat-request-queue.test.js tests/chat-command.test.js",
+    "test:ai-live": "node scripts/testAiLive.js"
   },
   "engines": {
     "node": ">=18.0.0"

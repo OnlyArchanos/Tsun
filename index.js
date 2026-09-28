@@ -267,6 +267,7 @@ const socialSystem = require('./commands/social');
 const fishingSystem = require('./commands/fishing');
 const fishTradeSystem = require('./commands/fishTrade');
 const stockSystem = require('./commands/stock');
+const { createChatSystem } = require('./commands/chat');
 const stockEngine = require('./utils/stockEngine');
 const CARROT_RESET_SET = {
     'activeCarrot.amount': 0,
@@ -284,6 +285,8 @@ const client = new Client({
         GatewayIntentBits.GuildMessageReactions
     ]
 });
+
+const chatSystem = createChatSystem({ config, User });
 
 async function resolveDiscordIdentity(userId, localCache = null) {
     const fallback = { discordName: 'Unknown', discordTag: 'Unknown' };
@@ -954,6 +957,17 @@ client.once('clientReady', async () => {
     console.log("🔌 Connecting to Database...");
     await connectDB();
     console.log(`🚀 Tsun is online as ${client.user.tag}`);
+
+    const chatSummary = chatSystem.getStartupSummary(client);
+    for (const warning of chatSummary.warnings) console.warn(`[AI Chat] ${warning}`);
+    if (chatSummary.enabled) {
+        const channels = chatSummary.matchedChannels.length > 0
+            ? chatSummary.matchedChannels.join(', ')
+            : 'no matching channels currently found';
+        console.log(`[AI Chat] Enabled in ${channels}. OpenRouter model chain: ${chatSummary.models.join(' -> ')}.`);
+    } else {
+        console.log(`[AI Chat] Disabled${chatSummary.requestedEnabled ? ' due to incomplete configuration' : ' by configuration'}.`);
+    }
 
     // Autocast reboot recovery sweep
     await handleInterruptedAutocasts(client);
@@ -1851,6 +1865,10 @@ client.on('messageCreate', async (message) => {
         return utilitySystem.handle(message, client);
     }
 
+    if (cmd === '!chat') {
+        return chatSystem.handleCommand(message);
+    }
+
     if (cmd === '!leaderboard' || cmd === '!lb') {
         const type = args[1]?.toLowerCase();
         if (type === 'op' || type === 'ed') {
@@ -1969,7 +1987,10 @@ client.on('messageCreate', async (message) => {
 
             await generalChannel.send({ content: `<@${target.id}>`, embeds: [embed] });
         }
+        return;
     }
+
+    return chatSystem.handleMessage(message);
 });
 
 // ==================== REACTION HANDLER ====================

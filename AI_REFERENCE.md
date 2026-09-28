@@ -91,8 +91,12 @@ All loaded via `dotenv`. Required in `.env`:
 | `CLOUDINARY_CLOUD_NAME` | Cloudinary account name                |
 | `CLOUDINARY_API_KEY`    | Cloudinary API key                     |
 | `CLOUDINARY_API_SECRET` | Cloudinary API secret                  |
-| `POLLINATIONS_API_KEY`  | Pollinations API key                   |
-| `OPENROUTER_API_KEY`    | OpenRouter API key                     |
+| `OPENROUTER_API_KEY`    | OpenRouter key for conversational Tsun |
+| `TSUN_AI_ENABLED`       | Enables conversational Tsun            |
+| `TSUN_AI_GUILD_IDS`     | Comma-separated allowed Discord guild IDs |
+| `TSUN_AI_CHANNEL_IDS`   | Comma-separated allowed Discord channel IDs |
+| `TSUN_AI_PRIMARY_MODEL` | Primary OpenRouter model                |
+| `TSUN_AI_FALLBACK_MODELS` | Ordered OpenRouter fallback models    |
 | `DASHBOARD_PASSWORD`    | Admin Dashboard Password               |
 | `SESSION_SECRET`        | Express Session Secret                 |
 | `OWNER_ID`              | Discord user ID of the bot owner       |

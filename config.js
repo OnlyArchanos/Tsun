@@ -1,7 +1,103 @@
 // config.js - Centralized Configuration
 // All hardcoded values in one place for easy maintenance
 
+function parseBoolean(value, fallback = false) {
+  if (value === undefined || value === null || String(value).trim() === '') return fallback;
+  const normalized = String(value).trim().toLowerCase();
+  if (['true', '1', 'yes', 'on'].includes(normalized)) return true;
+  if (['false', '0', 'no', 'off'].includes(normalized)) return false;
+  return fallback;
+}
+
+function parseCsv(value) {
+  if (!value) return [];
+  return [...new Set(String(value)
+    .split(',')
+    .map((entry) => entry.trim().toLowerCase())
+    .filter(Boolean))];
+}
+
+function parseSnowflakeCsv(value) {
+  return parseCsv(value).filter((entry) => /^\d{17,20}$/.test(entry));
+}
+
+function parseBoundedInteger(value, fallback, min, max) {
+  const normalized = String(value ?? '').trim();
+  if (!/^[+-]?\d+$/.test(normalized)) return fallback;
+
+  const parsed = Number(normalized);
+  return Number.isSafeInteger(parsed) && parsed >= min && parsed <= max ? parsed : fallback;
+}
+
+function buildAiChatConfig(env = process.env) {
+  const requestedEnabled = parseBoolean(env.TSUN_AI_ENABLED, false);
+  const guildIds = parseSnowflakeCsv(env.TSUN_AI_GUILD_IDS);
+  const channelIds = parseSnowflakeCsv(env.TSUN_AI_CHANNEL_IDS);
+  const warnings = [];
+
+  const readInteger = (name, fallback, min, max) => {
+    const raw = env[name];
+    if (raw === undefined) return fallback;
+
+    const normalized = String(raw).trim();
+    const parsed = Number(normalized);
+    const isValid = /^[+-]?\d+$/.test(normalized)
+      && Number.isSafeInteger(parsed)
+      && parsed >= min
+      && parsed <= max;
+
+    if (!isValid) {
+      warnings.push(`${name} is invalid; using ${fallback}.`);
+      return fallback;
+    }
+
+    return parsed;
+  };
+
+  if (requestedEnabled && !env.OPENROUTER_API_KEY) warnings.push('OPENROUTER_API_KEY is required when AI chat is enabled.');
+  if (requestedEnabled && guildIds.length === 0) warnings.push('TSUN_AI_GUILD_IDS must contain at least one guild ID.');
+  if (requestedEnabled && channelIds.length === 0) warnings.push('TSUN_AI_CHANNEL_IDS must contain at least one channel ID.');
+
+  const configured = Boolean(env.OPENROUTER_API_KEY) && guildIds.length > 0 && channelIds.length > 0;
+
+  return {
+    REQUESTED_ENABLED: requestedEnabled,
+    ENABLED: requestedEnabled && configured,
+    WARNINGS: warnings,
+    GUILD_IDS: guildIds,
+    CHANNEL_IDS: channelIds,
+    OPENROUTER_API_KEY: env.OPENROUTER_API_KEY || '',
+    PRIMARY_MODEL: env.TSUN_AI_PRIMARY_MODEL || 'stealth/space-bunny-alpha',
+    FALLBACK_MODELS: parseCsv(env.TSUN_AI_FALLBACK_MODELS || 'nvidia/nemotron-3-ultra-550b-a55b:free,inclusionai/ling-3.0-flash-fin:free'),
+    MAX_INPUT_CHARS: readInteger('TSUN_AI_MAX_INPUT_CHARS', 1500, 100, 10000),
+    MAX_OUTPUT_TOKENS: readInteger('TSUN_AI_MAX_OUTPUT_TOKENS', 300, 50, 2000),
+    TEMPERATURE: 0.85,
+    REQUEST_TIMEOUT_MS: readInteger('TSUN_AI_REQUEST_TIMEOUT_MS', 12000, 1000, 30000),
+    TOTAL_DEADLINE_MS: readInteger('TSUN_AI_TOTAL_DEADLINE_MS', 25000, 5000, 60000),
+    USER_COOLDOWN_MS: readInteger('TSUN_AI_USER_COOLDOWN_MS', 3000, 0, 300000),
+    SESSION_TTL_MS: readInteger('TSUN_AI_SESSION_TTL_MS', 1800000, 60000, 86400000),
+    SESSION_MAX_MESSAGES: readInteger('TSUN_AI_SESSION_MAX_MESSAGES', 12, 2, 100),
+    MAX_SESSIONS: readInteger('TSUN_AI_MAX_SESSIONS', 5000, 10, 100000),
+    MAX_CONCURRENCY: readInteger('TSUN_AI_MAX_CONCURRENCY', 3, 1, 20),
+    MAX_QUEUE_SIZE: readInteger('TSUN_AI_MAX_QUEUE_SIZE', 20, 0, 1000),
+    MAX_QUEUE_WAIT_MS: readInteger('TSUN_AI_MAX_QUEUE_WAIT_MS', 30000, 1000, 300000),
+    MAX_PROVIDER_STARTS_PER_MINUTE: readInteger('TSUN_AI_MAX_PROVIDER_STARTS_PER_MINUTE', 18, 1, 60),
+    MIN_PROVIDER_START_INTERVAL_MS: readInteger('TSUN_AI_MIN_PROVIDER_START_INTERVAL_MS', 1100, 0, 60000),
+    FALLBACK_QUOTA_RESERVE: readInteger('TSUN_AI_FALLBACK_QUOTA_RESERVE', 5, 0, 1000),
+    CIRCUIT_FAILURE_THRESHOLD: readInteger('TSUN_AI_CIRCUIT_FAILURE_THRESHOLD', 2, 1, 20),
+    CIRCUIT_OPEN_MS: readInteger('TSUN_AI_CIRCUIT_OPEN_MS', 60000, 1000, 3600000),
+    MAX_STYLE_REWRITES: readInteger('TSUN_AI_MAX_STYLE_REWRITES', 1, 0, 2),
+  };
+}
+
 module.exports = {
+  parseBoolean,
+  parseCsv,
+  parseSnowflakeCsv,
+  parseBoundedInteger,
+
+  AI_CHAT: buildAiChatConfig(),
+
   // === USER IDS ===
   OWNER_IDS: process.env.OWNER_ID
     ? process.env.OWNER_ID.split(',').map(id => id.trim()).filter(Boolean)
