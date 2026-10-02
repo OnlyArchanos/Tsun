@@ -18,6 +18,19 @@ yarn-error.log*
 out.json
 dist/
 build/
+coverage/
+.nyc_output/
+.cache/
+*.tmp
+*.temp
+
+# Local Workspaces & Reference Archives
+.worktrees/
+tsun-old/
+
+# Editor Settings
+.vscode/
+.idea/
 
 # OS Specific
 .DS_Store
