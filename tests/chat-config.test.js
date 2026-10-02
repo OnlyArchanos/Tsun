@@ -4,7 +4,8 @@ const assert = require('node:assert/strict');
 const CONFIG_PATH = require.resolve('../config');
 
 function loadConfig(env = {}) {
-  const isAiKey = (key) => key.startsWith('TSUN_AI_') || key === 'OPENROUTER_API_KEY';
+  const isAiKey = (key) => key.startsWith('TSUN_AI_')
+    || ['OPENROUTER_API_KEY', 'MISTRAL_API_KEY', 'MISTRALOG_API_KEY'].includes(key);
   const previous = new Map(Object.keys(process.env).filter(isAiKey).map((key) => [key, process.env[key]]));
 
   for (const key of Object.keys(process.env).filter(isAiKey)) delete process.env[key];
@@ -53,12 +54,12 @@ test('valid numeric settings do not warn just because they equal the default', (
   assert.doesNotMatch(config.AI_CHAT.WARNINGS.join(' '), /TSUN_AI_MAX_CONCURRENCY/);
 });
 
-test('AI chat stays disabled when requested OpenRouter configuration is incomplete', () => {
+test('AI chat stays disabled when requested provider configuration is incomplete', () => {
   const config = loadConfig({ TSUN_AI_ENABLED: 'true' });
 
   assert.equal(config.AI_CHAT.REQUESTED_ENABLED, true);
   assert.equal(config.AI_CHAT.ENABLED, false);
-  assert.match(config.AI_CHAT.WARNINGS.join(' '), /OPENROUTER_API_KEY/);
+  assert.match(config.AI_CHAT.WARNINGS.join(' '), /provider API key/i);
   assert.match(config.AI_CHAT.WARNINGS.join(' '), /TSUN_AI_GUILD_IDS/);
   assert.match(config.AI_CHAT.WARNINGS.join(' '), /TSUN_AI_CHANNEL_IDS/);
 });
@@ -76,15 +77,70 @@ test('AI chat enables with an OpenRouter key and deduplicated guild and channel 
   assert.deepEqual(config.AI_CHAT.GUILD_IDS, ['12345678901234567', '22345678901234567']);
   assert.deepEqual(config.AI_CHAT.CHANNEL_IDS, ['32345678901234567', '42345678901234567']);
   assert.equal(config.AI_CHAT.OPENROUTER_API_KEY, 'test-openrouter-secret');
-  assert.equal(config.AI_CHAT.PRIMARY_MODEL, 'stealth/space-bunny-alpha');
-  assert.deepEqual(config.AI_CHAT.FALLBACK_MODELS, [
-    'nvidia/nemotron-3-ultra-550b-a55b:free',
-    'inclusionai/ling-3.0-flash-fin:free',
+  assert.deepEqual(config.AI_CHAT.TARGETS, [
+    { provider: 'openrouter', model: 'stealth/space-bunny-alpha' },
+    { provider: 'openrouter', model: 'nvidia/nemotron-3-ultra-550b-a55b:free' },
+    { provider: 'openrouter', model: 'inclusionai/ling-3.0-flash-fin:free' },
   ]);
   assert.equal(config.AI_CHAT.TOTAL_DEADLINE_MS, 25000);
   assert.equal(config.AI_CHAT.FALLBACK_QUOTA_RESERVE, 5);
   assert.equal(config.AI_CHAT.MAX_CONCURRENCY, 3);
   assert.match(config.AI_CHAT.WARNINGS.join(' '), /TSUN_AI_MAX_CONCURRENCY/);
+});
+
+test('Mistral canonical key wins over its compatibility alias', () => {
+  const { AI_CHAT } = loadConfig({
+    MISTRAL_API_KEY: 'canonical',
+    MISTRALOG_API_KEY: 'legacy',
+  });
+
+  assert.equal(AI_CHAT.MISTRAL_API_KEY, 'canonical');
+});
+
+test('Mistral compatibility alias enables Mistral-only chat', () => {
+  const { AI_CHAT } = loadConfig({
+    TSUN_AI_ENABLED: 'true',
+    TSUN_AI_GUILD_IDS: '12345678901234567',
+    TSUN_AI_CHANNEL_IDS: '32345678901234567',
+    MISTRALOG_API_KEY: 'legacy',
+  });
+
+  assert.equal(AI_CHAT.ENABLED, true);
+  assert.equal(AI_CHAT.MISTRAL_API_KEY, 'legacy');
+  assert.deepEqual(AI_CHAT.TARGETS, [
+    { provider: 'mistral', model: 'ministral-14b-2512' },
+    { provider: 'mistral', model: 'ministral-8b-2512' },
+  ]);
+});
+
+test('configured models are deduplicated and ordered Mistral before OpenRouter', () => {
+  const { AI_CHAT } = loadConfig({
+    MISTRAL_API_KEY: 'mistral',
+    OPENROUTER_API_KEY: 'router',
+    TSUN_AI_MISTRAL_MODELS: 'ministral-8b-2512, ministral-14b-2512, MINISTRAL-8B-2512',
+    TSUN_AI_OPENROUTER_MODELS: 'stealth/space-bunny-alpha, stealth/space-bunny-alpha',
+    TSUN_AI_MISTRAL_MIN_START_INTERVAL_MS: '2500',
+  });
+
+  assert.deepEqual(AI_CHAT.TARGETS, [
+    { provider: 'mistral', model: 'ministral-8b-2512' },
+    { provider: 'mistral', model: 'ministral-14b-2512' },
+    { provider: 'openrouter', model: 'stealth/space-bunny-alpha' },
+  ]);
+  assert.equal(AI_CHAT.MISTRAL_MIN_START_INTERVAL_MS, 2500);
+});
+
+test('buildAiChatConfig is exported for deterministic provider configuration', () => {
+  const { buildAiChatConfig } = loadConfig();
+  const configured = buildAiChatConfig({
+    TSUN_AI_ENABLED: 'true',
+    TSUN_AI_GUILD_IDS: '12345678901234567',
+    TSUN_AI_CHANNEL_IDS: '32345678901234567',
+    MISTRAL_API_KEY: 'mistral',
+  });
+
+  assert.equal(configured.ENABLED, true);
+  assert.equal(configured.TARGETS[0].provider, 'mistral');
 });
 
 test('invalid Discord IDs are discarded and prevent enablement', () => {

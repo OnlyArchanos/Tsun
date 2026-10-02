@@ -33,6 +33,23 @@ function buildAiChatConfig(env = process.env) {
   const requestedEnabled = parseBoolean(env.TSUN_AI_ENABLED, false);
   const guildIds = parseSnowflakeCsv(env.TSUN_AI_GUILD_IDS);
   const channelIds = parseSnowflakeCsv(env.TSUN_AI_CHANNEL_IDS);
+  const mistralApiKey = env.MISTRAL_API_KEY || env.MISTRALOG_API_KEY || '';
+  const openRouterApiKey = env.OPENROUTER_API_KEY || '';
+  const mistralModels = parseCsv(
+    env.TSUN_AI_MISTRAL_MODELS || 'ministral-14b-2512,ministral-8b-2512'
+  );
+  const openRouterModels = parseCsv(
+    env.TSUN_AI_OPENROUTER_MODELS
+      || 'stealth/space-bunny-alpha,nvidia/nemotron-3-ultra-550b-a55b:free,inclusionai/ling-3.0-flash-fin:free'
+  );
+  const targets = [
+    ...(mistralApiKey
+      ? mistralModels.map((model) => ({ provider: 'mistral', model }))
+      : []),
+    ...(openRouterApiKey
+      ? openRouterModels.map((model) => ({ provider: 'openrouter', model }))
+      : []),
+  ];
   const warnings = [];
 
   const readInteger = (name, fallback, min, max) => {
@@ -54,11 +71,16 @@ function buildAiChatConfig(env = process.env) {
     return parsed;
   };
 
-  if (requestedEnabled && !env.OPENROUTER_API_KEY) warnings.push('OPENROUTER_API_KEY is required when AI chat is enabled.');
+  if (requestedEnabled && !mistralApiKey && !openRouterApiKey) {
+    warnings.push('At least one provider API key is required when AI chat is enabled.');
+  }
+  if (requestedEnabled && (mistralApiKey || openRouterApiKey) && targets.length === 0) {
+    warnings.push('At least one model is required for a configured AI provider.');
+  }
   if (requestedEnabled && guildIds.length === 0) warnings.push('TSUN_AI_GUILD_IDS must contain at least one guild ID.');
   if (requestedEnabled && channelIds.length === 0) warnings.push('TSUN_AI_CHANNEL_IDS must contain at least one channel ID.');
 
-  const configured = Boolean(env.OPENROUTER_API_KEY) && guildIds.length > 0 && channelIds.length > 0;
+  const configured = targets.length > 0 && guildIds.length > 0 && channelIds.length > 0;
 
   return {
     REQUESTED_ENABLED: requestedEnabled,
@@ -66,9 +88,11 @@ function buildAiChatConfig(env = process.env) {
     WARNINGS: warnings,
     GUILD_IDS: guildIds,
     CHANNEL_IDS: channelIds,
-    OPENROUTER_API_KEY: env.OPENROUTER_API_KEY || '',
-    PRIMARY_MODEL: env.TSUN_AI_PRIMARY_MODEL || 'stealth/space-bunny-alpha',
-    FALLBACK_MODELS: parseCsv(env.TSUN_AI_FALLBACK_MODELS || 'nvidia/nemotron-3-ultra-550b-a55b:free,inclusionai/ling-3.0-flash-fin:free'),
+    MISTRAL_API_KEY: mistralApiKey,
+    OPENROUTER_API_KEY: openRouterApiKey,
+    TARGETS: targets,
+    PRIMARY_MODEL: openRouterModels[0] || '',
+    FALLBACK_MODELS: openRouterModels.slice(1),
     MAX_INPUT_CHARS: readInteger('TSUN_AI_MAX_INPUT_CHARS', 1500, 100, 10000),
     MAX_OUTPUT_TOKENS: readInteger('TSUN_AI_MAX_OUTPUT_TOKENS', 300, 50, 2000),
     TEMPERATURE: 0.85,
@@ -83,6 +107,7 @@ function buildAiChatConfig(env = process.env) {
     MAX_QUEUE_WAIT_MS: readInteger('TSUN_AI_MAX_QUEUE_WAIT_MS', 30000, 1000, 300000),
     MAX_PROVIDER_STARTS_PER_MINUTE: readInteger('TSUN_AI_MAX_PROVIDER_STARTS_PER_MINUTE', 18, 1, 60),
     MIN_PROVIDER_START_INTERVAL_MS: readInteger('TSUN_AI_MIN_PROVIDER_START_INTERVAL_MS', 1100, 0, 60000),
+    MISTRAL_MIN_START_INTERVAL_MS: readInteger('TSUN_AI_MISTRAL_MIN_START_INTERVAL_MS', 2100, 0, 60000),
     FALLBACK_QUOTA_RESERVE: readInteger('TSUN_AI_FALLBACK_QUOTA_RESERVE', 5, 0, 1000),
     CIRCUIT_FAILURE_THRESHOLD: readInteger('TSUN_AI_CIRCUIT_FAILURE_THRESHOLD', 2, 1, 20),
     CIRCUIT_OPEN_MS: readInteger('TSUN_AI_CIRCUIT_OPEN_MS', 60000, 1000, 3600000),
@@ -95,6 +120,7 @@ module.exports = {
   parseCsv,
   parseSnowflakeCsv,
   parseBoundedInteger,
+  buildAiChatConfig,
 
   AI_CHAT: buildAiChatConfig(),
 
