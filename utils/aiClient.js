@@ -4,6 +4,7 @@ const {
   chooseDenserDraft,
 } = require('./chatStyle');
 
+const MISTRAL_CHAT_URL = 'https://api.mistral.ai/v1/chat/completions';
 const OPENROUTER_CHAT_URL = 'https://openrouter.ai/api/v1/chat/completions';
 const OPENROUTER_KEY_URL = 'https://openrouter.ai/api/v1/key';
 
@@ -17,9 +18,13 @@ const MODEL_PROFILES = Object.freeze({
   'inclusionai/ling-3.0-flash-fin:free': Object.freeze({}),
 });
 
+function targetKey({ provider, model }) {
+  return `${provider}:${model}`;
+}
+
 class AiProviderError extends Error {
-  constructor({ provider = 'openrouter', model = null, kind, status = null, retryable = false }) {
-    super(`AI provider ${provider} failed (${kind}).`);
+  constructor({ provider = null, model = null, kind, status = null, retryable = false }) {
+    super(`AI provider ${provider || 'unknown'} failed (${kind}).`);
     this.name = 'AiProviderError';
     this.provider = provider;
     this.model = model;
@@ -46,33 +51,32 @@ function normalizeUsage(usage) {
   return { promptTokens: values[0], completionTokens: values[1], totalTokens: values[2] };
 }
 
-function classifyHttpStatus(model, response) {
-  const status = response.status;
-  if (status === 401 || status === 403) {
-    return new AiProviderError({ model, kind: 'auth', status });
+function classifyHttpStatus(target, response) {
+  const details = { provider: target.provider, model: target.model, status: response.status };
+  if (response.status === 401 || response.status === 403) {
+    return new AiProviderError({ ...details, kind: 'auth' });
   }
-  if (status === 400 || status === 422) {
-    return new AiProviderError({ model, kind: 'bad_request', status });
+  if (response.status === 400 || response.status === 422) {
+    return new AiProviderError({ ...details, kind: 'bad_request' });
   }
-  if (status === 402) {
+  if (response.status === 402) {
     const retryAfter = response.headers?.get?.('retry-after');
     return new AiProviderError({
-      model,
+      ...details,
       kind: retryAfter ? 'quota_temporary' : 'quota',
-      status,
       retryable: Boolean(retryAfter),
     });
   }
-  if (status === 404) {
-    return new AiProviderError({ model, kind: 'model_unavailable', status, retryable: true });
+  if (response.status === 404) {
+    return new AiProviderError({ ...details, kind: 'model_unavailable', retryable: true });
   }
-  if (status === 429) {
-    return new AiProviderError({ model, kind: 'rate_limit', status, retryable: true });
+  if (response.status === 429) {
+    return new AiProviderError({ ...details, kind: 'rate_limit', retryable: true });
   }
-  if (status >= 500) {
-    return new AiProviderError({ model, kind: 'server', status, retryable: true });
+  if (response.status >= 500) {
+    return new AiProviderError({ ...details, kind: 'server', retryable: true });
   }
-  return new AiProviderError({ model, kind: 'bad_response', status, retryable: true });
+  return new AiProviderError({ ...details, kind: 'bad_response', retryable: true });
 }
 
 function createAiClient({
@@ -85,27 +89,54 @@ function createAiClient({
   if (!config) throw new TypeError('AI client config is required.');
   if (typeof fetchImpl !== 'function') throw new TypeError('A fetch implementation is required.');
 
-  const models = [config.PRIMARY_MODEL, ...(config.FALLBACK_MODELS || [])].filter(Boolean);
-  const health = new Map(models.map((model) => [model, {
-    status: 'unknown', lastAttemptAt: null, consecutiveFailures: 0, openUntil: null,
+  const targets = Array.isArray(config.TARGETS)
+    ? config.TARGETS
+      .filter((target) => target && typeof target.provider === 'string' && typeof target.model === 'string')
+      .map((target) => ({ provider: target.provider, model: target.model }))
+    : [];
+  const health = new Map(targets.map((target) => [targetKey(target), {
+    provider: target.provider,
+    model: target.model,
+    status: 'unknown',
+    lastAttemptAt: null,
+    consecutiveFailures: 0,
+    openUntil: null,
   }]));
-  let quota = { remaining: null, checkedAt: null };
+  let openRouterQuota = { remaining: null, checkedAt: null };
 
-  function getModelHealth(model) {
-    if (!health.has(model)) {
-      health.set(model, { status: 'unknown', lastAttemptAt: null, consecutiveFailures: 0, openUntil: null });
+  function getTargetHealth(target) {
+    const key = targetKey(target);
+    if (!health.has(key)) {
+      health.set(key, {
+        provider: target.provider,
+        model: target.model,
+        status: 'unknown',
+        lastAttemptAt: null,
+        consecutiveFailures: 0,
+        openUntil: null,
+      });
     }
-    return health.get(model);
+    return health.get(key);
   }
 
-  function recordSuccess(model) {
-    health.set(model, { status: 'ok', lastAttemptAt: now(), consecutiveFailures: 0, openUntil: null });
+  function recordSuccess(target) {
+    health.set(targetKey(target), {
+      provider: target.provider,
+      model: target.model,
+      status: 'ok',
+      lastAttemptAt: now(),
+      consecutiveFailures: 0,
+      openUntil: null,
+    });
   }
 
-  function recordFailure(model, error) {
-    const current = getModelHealth(model);
-    const consecutiveFailures = error.retryable ? current.consecutiveFailures + 1 : current.consecutiveFailures;
-    health.set(model, {
+  function recordFailure(target, error) {
+    const current = getTargetHealth(target);
+    const consecutiveFailures = error.retryable
+      ? current.consecutiveFailures + 1
+      : current.consecutiveFailures;
+    health.set(targetKey(target), {
+      ...current,
       status: error.kind,
       lastAttemptAt: now(),
       consecutiveFailures,
@@ -115,17 +146,17 @@ function createAiClient({
     });
   }
 
-  function assertCircuitClosed(model) {
-    const state = getModelHealth(model);
+  function assertCircuitClosed(target) {
+    const state = getTargetHealth(target);
     if (state.openUntil && now() < state.openUntil) {
-      throw new AiProviderError({ model, kind: 'circuit_open', retryable: true });
+      throw new AiProviderError({ ...target, kind: 'circuit_open', retryable: true });
     }
     if (state.openUntil) {
-      health.set(model, { ...state, openUntil: null, consecutiveFailures: 0 });
+      health.set(targetKey(target), { ...state, openUntil: null, consecutiveFailures: 0 });
     }
   }
 
-  async function fetchJsonWithTimeout(url, options, timeoutMs, model) {
+  async function fetchJsonWithTimeout(url, options, timeoutMs, target) {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), Math.max(1, timeoutMs));
     try {
@@ -135,12 +166,12 @@ function createAiClient({
         return { response, data: await response.json() };
       } catch (cause) {
         if (cause?.name === 'AbortError' || controller.signal.aborted) throw cause;
-        throw new AiProviderError({ model, kind: 'bad_response', retryable: true });
+        throw new AiProviderError({ ...target, kind: 'bad_response', retryable: true });
       }
     } catch (cause) {
       if (cause instanceof AiProviderError) throw cause;
       throw new AiProviderError({
-        model,
+        ...target,
         kind: cause?.name === 'AbortError' || controller.signal.aborted ? 'timeout' : 'network',
         retryable: true,
       });
@@ -149,93 +180,130 @@ function createAiClient({
     }
   }
 
-  async function callModel(model, requestMessages, deadlineAt) {
-    assertCircuitClosed(model);
-    if (!config.OPENROUTER_API_KEY) {
-      throw new AiProviderError({ model, kind: 'auth' });
-    }
-    const profile = MODEL_PROFILES[model] || {};
+  function buildProviderRequest(target, requestMessages) {
     const body = {
-      model,
+      model: target.model,
       messages: requestMessages.map((message) => ({ ...message })),
       max_tokens: config.MAX_OUTPUT_TOKENS,
       temperature: config.TEMPERATURE,
-      ...profile,
     };
 
+    if (target.provider === 'mistral') {
+      if (!config.MISTRAL_API_KEY) throw new AiProviderError({ ...target, kind: 'auth' });
+      return {
+        url: MISTRAL_CHAT_URL,
+        options: {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${config.MISTRAL_API_KEY}`,
+          },
+          body: JSON.stringify(body),
+        },
+      };
+    }
+
+    if (target.provider === 'openrouter') {
+      if (!config.OPENROUTER_API_KEY) throw new AiProviderError({ ...target, kind: 'auth' });
+      Object.assign(body, MODEL_PROFILES[target.model] || {});
+      return {
+        url: OPENROUTER_CHAT_URL,
+        options: {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${config.OPENROUTER_API_KEY}`,
+          },
+          body: JSON.stringify(body),
+        },
+      };
+    }
+
+    throw new AiProviderError({ ...target, kind: 'bad_request' });
+  }
+
+  async function callTarget(target, requestMessages, deadlineAt) {
     try {
+      assertCircuitClosed(target);
+      const request = buildProviderRequest(target, requestMessages);
       const result = await runProviderAttempt(() => {
         const remainingMs = deadlineAt - now();
         if (remainingMs <= 0) {
-          throw new AiProviderError({ model, kind: 'deadline', retryable: true });
+          throw new AiProviderError({ ...target, kind: 'deadline', retryable: true });
         }
         return fetchJsonWithTimeout(
-          OPENROUTER_CHAT_URL,
-          {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              Authorization: `Bearer ${config.OPENROUTER_API_KEY}`,
-            },
-            body: JSON.stringify(body),
-          },
+          request.url,
+          request.options,
           Math.min(config.REQUEST_TIMEOUT_MS, remainingMs),
-          model,
+          target,
         );
-      }, { deadlineAt });
+      }, { deadlineAt, provider: target.provider });
 
       const response = result?.response;
       if (!response || typeof response.ok !== 'boolean' || typeof response.status !== 'number') {
-        throw new AiProviderError({ model, kind: 'bad_response', retryable: true });
+        throw new AiProviderError({ ...target, kind: 'bad_response', retryable: true });
       }
-      if (!response.ok) throw classifyHttpStatus(model, response);
+      if (!response.ok) throw classifyHttpStatus(target, response);
 
-      const data = result.data;
-      const text = normalizeResponseContent(data?.choices?.[0]?.message?.content);
-      if (!text) throw new AiProviderError({ model, kind: 'bad_response', retryable: true });
-      recordSuccess(model);
-      return { text, provider: 'openrouter', model, usage: normalizeUsage(data.usage) };
+      const text = normalizeResponseContent(result.data?.choices?.[0]?.message?.content);
+      if (!text) throw new AiProviderError({ ...target, kind: 'bad_response', retryable: true });
+      recordSuccess(target);
+      return {
+        text,
+        provider: target.provider,
+        model: target.model,
+        usage: normalizeUsage(result.data?.usage),
+      };
     } catch (cause) {
       const error = cause instanceof AiProviderError
         ? cause
         : new AiProviderError({
-          model,
+          ...target,
           kind: cause?.kind === 'provider_deadline' ? 'deadline' : 'network',
           retryable: true,
         });
-      if (error.kind === 'quota') quota = { remaining: 0, checkedAt: now() };
-      if (error.kind !== 'deadline' && error.kind !== 'quota_temporary') recordFailure(model, error);
+      if (target.provider === 'openrouter' && error.kind === 'quota') {
+        openRouterQuota = { remaining: 0, checkedAt: now() };
+      }
+      if (!['deadline', 'quota_temporary', 'circuit_open'].includes(error.kind)) {
+        recordFailure(target, error);
+      }
       throw error;
     }
   }
 
-  async function refreshQuota(deadlineAt) {
-    if (quota.checkedAt !== null && now() - quota.checkedAt < 60000) return quota;
-    if (deadlineAt - now() <= 0) return quota;
+  async function refreshOpenRouterQuota(deadlineAt) {
+    if (!config.OPENROUTER_API_KEY) return openRouterQuota;
+    if (openRouterQuota.checkedAt !== null && now() - openRouterQuota.checkedAt < 60000) {
+      return openRouterQuota;
+    }
+    if (deadlineAt - now() <= 0) return openRouterQuota;
     try {
       const result = await fetchJsonWithTimeout(OPENROUTER_KEY_URL, {
         method: 'GET',
         headers: { Authorization: `Bearer ${config.OPENROUTER_API_KEY}` },
-      }, Math.min(3000, deadlineAt - now()), null);
-      if (!result?.response?.ok) return quota;
-      const body = result.data;
-      const raw = body?.data?.limit_remaining ?? body?.limit_remaining;
+      }, Math.min(3000, deadlineAt - now()), { provider: 'openrouter', model: null });
+      if (!result?.response?.ok) return openRouterQuota;
+      const raw = result.data?.data?.limit_remaining ?? result.data?.limit_remaining;
       const remaining = raw === null || raw === undefined || raw === '' ? null : Number(raw);
-      quota = { remaining: Number.isFinite(remaining) ? remaining : null, checkedAt: now() };
+      openRouterQuota = {
+        remaining: Number.isFinite(remaining) ? remaining : null,
+        checkedAt: now(),
+      };
     } catch {
-      quota = { ...quota, checkedAt: now() };
+      openRouterQuota = { ...openRouterQuota, checkedAt: now() };
     }
-    return quota;
+    return openRouterQuota;
   }
 
-  async function enforceFallbackReserve(deadlineAt) {
-    const current = await refreshQuota(deadlineAt);
+  async function enforceOpenRouterReserve(deadlineAt) {
+    const current = await refreshOpenRouterQuota(deadlineAt);
     if (current.remaining !== null && current.remaining <= config.FALLBACK_QUOTA_RESERVE) {
-      throw new AiProviderError({ kind: 'quota_reserve' });
+      throw new AiProviderError({ provider: 'openrouter', kind: 'quota_reserve' });
     }
   }
 
-  async function applyStyle(result, requestMessages, deadlineAt) {
+  async function applyStyle(result, target, requestMessages, deadlineAt) {
     if (config.MAX_STYLE_REWRITES < 1 || evaluateProfanityDensity(result.text).passes) return result;
     if (deadlineAt - now() <= 0) return result;
     const rewriteMessages = [
@@ -244,7 +312,7 @@ function createAiClient({
       { role: 'user', content: buildStyleRewriteInput(result.text) },
     ];
     try {
-      const rewritten = await callModel(result.model, rewriteMessages, deadlineAt);
+      const rewritten = await callTarget(target, rewriteMessages, deadlineAt);
       return { ...rewritten, text: chooseDenserDraft(result.text, rewritten.text) };
     } catch (error) {
       logger.warn?.(`[AI] Style rewrite failed (${error.kind || 'unknown'}).`);
@@ -257,27 +325,44 @@ function createAiClient({
     const deadlineAt = Number.isFinite(options.deadlineAt)
       ? Math.min(options.deadlineAt, now() + config.TOTAL_DEADLINE_MS)
       : now() + config.TOTAL_DEADLINE_MS;
+    const failedProviders = new Set();
+    let openRouterReserveChecked = false;
     let lastError = null;
 
-    for (let index = 0; index < models.length; index += 1) {
-      const model = models[index];
-      if (index > 0) await enforceFallbackReserve(deadlineAt);
+    for (let index = 0; index < targets.length; index += 1) {
+      const target = targets[index];
+      if (failedProviders.has(target.provider)) continue;
+
+      if (target.provider === 'openrouter' && index > 0 && !openRouterReserveChecked) {
+        openRouterReserveChecked = true;
+        await enforceOpenRouterReserve(deadlineAt);
+      }
+
       try {
-        const result = await callModel(model, requestMessages, deadlineAt);
-        return await applyStyle(result, requestMessages, deadlineAt);
+        const result = await callTarget(target, requestMessages, deadlineAt);
+        return await applyStyle(result, target, requestMessages, deadlineAt);
       } catch (error) {
         lastError = error;
-        if (!(error instanceof AiProviderError) || !error.retryable) throw error;
-        logger.warn?.(`[AI] ${model} failed (${error.kind}); trying next model.`);
+        if (!(error instanceof AiProviderError)) throw error;
+        if (error.kind === 'auth') {
+          failedProviders.add(target.provider);
+          logger.warn?.(`[AI] ${target.provider} authentication failed; trying next provider.`);
+          continue;
+        }
+        if (!error.retryable) throw error;
+        logger.warn?.(`[AI] ${target.provider}/${target.model} failed (${error.kind}); trying next target.`);
       }
     }
     throw lastError || new AiProviderError({ kind: 'model_unavailable', retryable: true });
   }
 
   function getHealth() {
+    const targetStates = Object.fromEntries([...health].map(([key, state]) => [key, { ...state }]));
     return {
-      models: Object.fromEntries([...health].map(([model, state]) => [model, { ...state }])),
-      quota: { ...quota },
+      targets: targetStates,
+      openRouterQuota: { ...openRouterQuota },
+      models: targetStates,
+      quota: { ...openRouterQuota },
     };
   }
 
@@ -289,4 +374,5 @@ module.exports = {
   AiProviderError,
   createAiClient,
   normalizeResponseContent,
+  targetKey,
 };
