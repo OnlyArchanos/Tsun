@@ -137,8 +137,15 @@ function makeSystem({ config = makeConfig(), userResult = null, userError = null
   const aiClient = {
     generate: generate || (async () => ({ text: 'H-Hmph. Fine, hello.', provider: 'openrouter', model: 'test', usage: null })),
     getHealth: () => ({
-      models: { 'stealth/space-bunny-alpha': { status: 'ok', lastAttemptAt: 1 } },
-      quota: { remaining: null, checkedAt: null },
+      targets: {
+        'mistral:ministral-14b-2512': {
+          provider: 'mistral', model: 'ministral-14b-2512', status: 'ok', lastAttemptAt: 1,
+        },
+        'openrouter:stealth/space-bunny-alpha': {
+          provider: 'openrouter', model: 'stealth/space-bunny-alpha', status: 'unknown', lastAttemptAt: null,
+        },
+      },
+      openRouterQuota: { remaining: null, checkedAt: null },
     }),
   };
   const logger = { warn() {}, error() {}, log() {} };
@@ -391,9 +398,37 @@ test('chat reset and status operate only on the caller session and expose no sec
   const status = makeMessage({ content: '!chat status', mentioned: false });
   await system.handleCommand(status.message);
   assert.match(status.replies[0].content, /1 exchange/i);
+  assert.match(status.replies[0].content, /mistral\/ministral-14b-2512: ok/i);
+  assert.match(status.replies[0].content, /openrouter\/stealth\/space-bunny-alpha: unknown/i);
+  assert.ok(status.replies[0].content.includes('**OpenRouter quota:** not reported'));
   assert.doesNotMatch(status.replies[0].content, /hidden-router/);
+  assert.doesNotMatch(status.replies[0].content, /hidden-mistral/);
 
   const reset = makeMessage({ content: '!chat reset', mentioned: false });
   await system.handleCommand(reset.message);
   assert.equal(sessionStore.getStatus(key).turns, 0);
+});
+
+test('startup summary reports ordered targets and provider availability without secrets', () => {
+  const config = makeConfig();
+  const { system } = makeSystem({ config });
+  const summary = system.getStartupSummary({
+    guilds: {
+      cache: new Map([['guild', {
+        id: 'guild',
+        name: 'Test Guild',
+        channels: {
+          cache: new Map([['channel', { id: 'channel', name: 'general', type: ChannelType.GuildText }]]),
+        },
+      }]]),
+    },
+  });
+
+  assert.deepEqual(summary.targets, [
+    'mistral/ministral-14b-2512',
+    'openrouter/stealth/space-bunny-alpha',
+  ]);
+  assert.deepEqual(summary.providers, { mistral: true, openrouter: true });
+  assert.deepEqual(summary.matchedChannels, ['Test Guild/#general']);
+  assert.doesNotMatch(JSON.stringify(summary), /hidden-(?:router|mistral)/);
 });

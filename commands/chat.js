@@ -303,12 +303,13 @@ function createChatSystem({
         isAllowedGuild(message, chatConfig.GUILD_IDS) &&
         isAllowedChannel(message, chatConfig.CHANNEL_IDS);
       const exchangeLabel = session.turns === 1 ? 'exchange' : 'exchanges';
+      const targetHealth = Object.values(health.targets || {});
       const content = [
         `**Tsun Chat:** ${eligible ? 'available here' : 'unavailable here'}`,
         `**Memory:** ${session.turns} ${exchangeLabel}${session.expiresAt ? `, expires <t:${Math.floor(session.expiresAt / 1000)}:R>` : ''}`,
         `**Cooldown:** ${Math.ceil(getCooldownRemaining(key) / 1000)}s`,
-        `**Models:** ${Object.entries(health.models || {}).map(([model, state]) => `${model.split('/').at(-1)}: ${state.status}`).join('; ') || 'unknown'}`,
-        `**Quota:** ${health.quota?.remaining ?? 'not reported'}`,
+        `**Models:** ${targetHealth.map((state) => `${state.provider}/${state.model}: ${state.status}`).join('; ') || 'unknown'}`,
+        `**OpenRouter quota:** ${health.openRouterQuota?.remaining ?? 'not reported'}`,
         `**Load:** ${queueStatus.active} active, ${queueStatus.queued} queued`,
       ].join('\n');
       await message.reply(createSafeReplyOptions(content));
@@ -334,7 +335,11 @@ function createChatSystem({
       requestedEnabled: chatConfig.REQUESTED_ENABLED,
       matchedChannels: matched,
       warnings: [...chatConfig.WARNINGS],
-      models: [chatConfig.PRIMARY_MODEL, ...(chatConfig.FALLBACK_MODELS || [])],
+      targets: (chatConfig.TARGETS || []).map((target) => `${target.provider}/${target.model}`),
+      providers: {
+        mistral: Boolean(chatConfig.MISTRAL_API_KEY),
+        openrouter: Boolean(chatConfig.OPENROUTER_API_KEY),
+      },
     };
   }
 
