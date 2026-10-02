@@ -331,7 +331,7 @@ test('rejects empty, oversized, and attachment-only prompts before provider use'
   assert.equal(calls, 0);
 });
 
-test('uses the adult character prompt consistently in configured channels', async () => {
+test('uses the configured character prompt consistently in configured channels', async () => {
   let prompt = '';
   const { system } = makeSystem({
     generate: async (messages) => {
@@ -340,7 +340,7 @@ test('uses the adult character prompt consistently in configured channels', asyn
     },
   });
   await system.handleMessage(makeMessage().message);
-  assert.match(prompt, /fictional human adult character/i);
+  assert.match(prompt, /High-Functioning Tsundere Character/i);
 });
 
 test('does not commit invisible memory when Discord delivery fails', async () => {
