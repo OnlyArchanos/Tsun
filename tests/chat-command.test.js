@@ -32,11 +32,17 @@ function makeConfig(overrides = {}) {
       MAX_QUEUE_SIZE: 20,
       MAX_QUEUE_WAIT_MS: 30000,
       OPENROUTER_API_KEY: 'hidden-router',
+      MISTRAL_API_KEY: 'hidden-mistral',
+      TARGETS: [
+        { provider: 'mistral', model: 'ministral-14b-2512' },
+        { provider: 'openrouter', model: 'stealth/space-bunny-alpha' },
+      ],
       PRIMARY_MODEL: 'stealth/space-bunny-alpha',
       FALLBACK_MODELS: ['nvidia/nemotron-3-ultra-550b-a55b:free'],
       MAX_SESSIONS: 5000,
       MAX_PROVIDER_STARTS_PER_MINUTE: 18,
       MIN_PROVIDER_START_INTERVAL_MS: 1100,
+      MISTRAL_MIN_START_INTERVAL_MS: 2100,
       ...overrides,
     },
   };

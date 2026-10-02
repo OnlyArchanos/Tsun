@@ -91,6 +91,10 @@ function createChatSystem({
     maxQueueWaitMs: chatConfig.MAX_QUEUE_WAIT_MS,
     maxProviderStartsPerMinute: chatConfig.MAX_PROVIDER_STARTS_PER_MINUTE,
     minProviderStartIntervalMs: chatConfig.MIN_PROVIDER_START_INTERVAL_MS,
+    providerMinStartIntervals: {
+      mistral: chatConfig.MISTRAL_MIN_START_INTERVAL_MS,
+      openrouter: chatConfig.MIN_PROVIDER_START_INTERVAL_MS,
+    },
   });
   const client = aiClient || createAiClient({
     config: chatConfig,

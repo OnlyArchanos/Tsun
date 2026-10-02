@@ -120,7 +120,37 @@ test('spaces provider starts and enforces the rolling per-minute cap', async () 
   await queue.runProviderAttempt(async () => 'three');
 
   assert.deepEqual(waits, [100, 59900]);
-  assert.deepEqual(queue.getProviderStatus(), { startsLastMinute: 2, nextStartInMs: 100 });
+  assert.equal(queue.getProviderStatus().startsLastMinute, 2);
+  assert.equal(queue.getProviderStatus().nextStartInMs, 100);
+});
+
+test('spaces providers independently while sharing the rolling start cap', async () => {
+  let now = 0;
+  const waits = [];
+  const starts = [];
+  const queue = createChatRequestQueue({
+    maxProviderStartsPerMinute: 10,
+    minProviderStartIntervalMs: 100,
+    providerMinStartIntervals: { mistral: 2100, openrouter: 300 },
+    now: () => now,
+    sleep: async (ms) => { waits.push(ms); now += ms; },
+  });
+
+  await queue.runProviderAttempt(async () => { starts.push(['mistral', now]); }, { provider: 'mistral' });
+  await queue.runProviderAttempt(async () => { starts.push(['openrouter', now]); }, { provider: 'openrouter' });
+  await queue.runProviderAttempt(async () => { starts.push(['mistral', now]); }, { provider: 'mistral' });
+
+  assert.deepEqual(starts, [
+    ['mistral', 0],
+    ['openrouter', 0],
+    ['mistral', 2100],
+  ]);
+  assert.deepEqual(waits, [2100]);
+  assert.deepEqual(queue.getProviderStatus().providers, {
+    mistral: { nextStartInMs: 2100 },
+    openrouter: { nextStartInMs: 0 },
+  });
+  assert.equal(queue.getProviderStatus().startsLastMinute, 3);
 });
 
 test('serializes simultaneous provider admissions without serializing request bodies', async () => {
