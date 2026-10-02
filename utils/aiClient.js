@@ -15,7 +15,6 @@ const MODEL_PROFILES = Object.freeze({
   'nvidia/nemotron-3-ultra-550b-a55b:free': Object.freeze({
     reasoning: Object.freeze({ effort: 'low', exclude: true }),
   }),
-  'inclusionai/ling-3.0-flash-fin:free': Object.freeze({}),
 });
 
 function targetKey({ provider, model }) {
@@ -361,8 +360,6 @@ function createAiClient({
     return {
       targets: targetStates,
       openRouterQuota: { ...openRouterQuota },
-      models: targetStates,
-      quota: { ...openRouterQuota },
     };
   }
 

@@ -330,16 +330,23 @@ function createChatSystem({
         }
       }
     }
+    const targets = (chatConfig.TARGETS || []).map((target) => `${target.provider}/${target.model}`);
+    const channelLabel = matched.length > 0
+      ? matched.join(', ')
+      : 'no matching channels currently found';
     return {
       enabled: chatConfig.ENABLED,
       requestedEnabled: chatConfig.REQUESTED_ENABLED,
       matchedChannels: matched,
       warnings: [...chatConfig.WARNINGS],
-      targets: (chatConfig.TARGETS || []).map((target) => `${target.provider}/${target.model}`),
+      targets,
       providers: {
         mistral: Boolean(chatConfig.MISTRAL_API_KEY),
         openrouter: Boolean(chatConfig.OPENROUTER_API_KEY),
       },
+      logMessage: chatConfig.ENABLED
+        ? `Enabled in ${channelLabel}. Provider chain: ${targets.join(' -> ')}.`
+        : `Disabled${chatConfig.REQUESTED_ENABLED ? ' due to incomplete configuration' : ' by configuration'}.`,
     };
   }
 

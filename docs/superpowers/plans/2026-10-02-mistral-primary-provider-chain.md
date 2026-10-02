@@ -10,7 +10,7 @@
 
 ## Global Constraints
 
-- Default order is Mistral 14B, Mistral 8B, Space Bunny, Nemotron Ultra, Ling Flash.
+- Default order is Mistral 14B, Mistral 8B, Space Bunny, then Nemotron Ultra.
 - `MISTRAL_API_KEY` takes precedence over the compatibility alias `MISTRALOG_API_KEY`.
 - Missing credentials remove only that provider's targets; at least one provider is required to enable chat.
 - HTTP 400/422 fail globally; authentication skips the rest of the failed provider; retryable failures advance one target.

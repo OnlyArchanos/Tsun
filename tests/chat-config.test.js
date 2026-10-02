@@ -80,9 +80,8 @@ test('AI chat enables with an OpenRouter key and deduplicated guild and channel 
   assert.deepEqual(config.AI_CHAT.TARGETS, [
     { provider: 'openrouter', model: 'stealth/space-bunny-alpha' },
     { provider: 'openrouter', model: 'nvidia/nemotron-3-ultra-550b-a55b:free' },
-    { provider: 'openrouter', model: 'inclusionai/ling-3.0-flash-fin:free' },
   ]);
-  assert.equal(config.AI_CHAT.TOTAL_DEADLINE_MS, 25000);
+  assert.equal(config.AI_CHAT.TOTAL_DEADLINE_MS, 45000);
   assert.equal(config.AI_CHAT.FALLBACK_QUOTA_RESERVE, 5);
   assert.equal(config.AI_CHAT.MAX_CONCURRENCY, 3);
   assert.match(config.AI_CHAT.WARNINGS.join(' '), /TSUN_AI_MAX_CONCURRENCY/);

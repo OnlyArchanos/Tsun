@@ -960,14 +960,7 @@ client.once('clientReady', async () => {
 
     const chatSummary = chatSystem.getStartupSummary(client);
     for (const warning of chatSummary.warnings) console.warn(`[AI Chat] ${warning}`);
-    if (chatSummary.enabled) {
-        const channels = chatSummary.matchedChannels.length > 0
-            ? chatSummary.matchedChannels.join(', ')
-            : 'no matching channels currently found';
-        console.log(`[AI Chat] Enabled in ${channels}. OpenRouter model chain: ${chatSummary.models.join(' -> ')}.`);
-    } else {
-        console.log(`[AI Chat] Disabled${chatSummary.requestedEnabled ? ' due to incomplete configuration' : ' by configuration'}.`);
-    }
+    console.log(`[AI Chat] ${chatSummary.logMessage}`);
 
     // Autocast reboot recovery sweep
     await handleInterruptedAutocasts(client);

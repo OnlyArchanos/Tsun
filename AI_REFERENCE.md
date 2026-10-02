@@ -91,12 +91,15 @@ All loaded via `dotenv`. Required in `.env`:
 | `CLOUDINARY_CLOUD_NAME` | Cloudinary account name                |
 | `CLOUDINARY_API_KEY`    | Cloudinary API key                     |
 | `CLOUDINARY_API_SECRET` | Cloudinary API secret                  |
-| `OPENROUTER_API_KEY`    | OpenRouter key for conversational Tsun |
+| `MISTRAL_API_KEY`       | Official Mistral key for conversational Tsun |
+| `MISTRALOG_API_KEY`     | Compatibility alias for `MISTRAL_API_KEY` |
+| `OPENROUTER_API_KEY`    | OpenRouter fallback key for conversational Tsun |
 | `TSUN_AI_ENABLED`       | Enables conversational Tsun            |
 | `TSUN_AI_GUILD_IDS`     | Comma-separated allowed Discord guild IDs |
 | `TSUN_AI_CHANNEL_IDS`   | Comma-separated allowed Discord channel IDs |
-| `TSUN_AI_PRIMARY_MODEL` | Primary OpenRouter model                |
-| `TSUN_AI_FALLBACK_MODELS` | Ordered OpenRouter fallback models    |
+| `TSUN_AI_MISTRAL_MODELS` | Ordered official Mistral models        |
+| `TSUN_AI_OPENROUTER_MODELS` | Ordered OpenRouter fallback models |
+| `TSUN_AI_MISTRAL_MIN_START_INTERVAL_MS` | Minimum delay between Mistral starts |
 | `DASHBOARD_PASSWORD`    | Admin Dashboard Password               |
 | `SESSION_SECRET`        | Express Session Secret                 |
 | `OWNER_ID`              | Discord user ID of the bot owner       |

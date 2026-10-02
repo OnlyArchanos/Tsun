@@ -37,8 +37,6 @@ function makeConfig(overrides = {}) {
         { provider: 'mistral', model: 'ministral-14b-2512' },
         { provider: 'openrouter', model: 'stealth/space-bunny-alpha' },
       ],
-      PRIMARY_MODEL: 'stealth/space-bunny-alpha',
-      FALLBACK_MODELS: ['nvidia/nemotron-3-ultra-550b-a55b:free'],
       MAX_SESSIONS: 5000,
       MAX_PROVIDER_STARTS_PER_MINUTE: 18,
       MIN_PROVIDER_START_INTERVAL_MS: 1100,
@@ -430,5 +428,9 @@ test('startup summary reports ordered targets and provider availability without 
   ]);
   assert.deepEqual(summary.providers, { mistral: true, openrouter: true });
   assert.deepEqual(summary.matchedChannels, ['Test Guild/#general']);
+  assert.equal(
+    summary.logMessage,
+    'Enabled in Test Guild/#general. Provider chain: mistral/ministral-14b-2512 -> openrouter/stealth/space-bunny-alpha.'
+  );
   assert.doesNotMatch(JSON.stringify(summary), /hidden-(?:router|mistral)/);
 });

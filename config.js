@@ -40,7 +40,7 @@ function buildAiChatConfig(env = process.env) {
   );
   const openRouterModels = parseCsv(
     env.TSUN_AI_OPENROUTER_MODELS
-      || 'stealth/space-bunny-alpha,nvidia/nemotron-3-ultra-550b-a55b:free,inclusionai/ling-3.0-flash-fin:free'
+      || 'stealth/space-bunny-alpha,nvidia/nemotron-3-ultra-550b-a55b:free'
   );
   const targets = [
     ...(mistralApiKey
@@ -91,13 +91,11 @@ function buildAiChatConfig(env = process.env) {
     MISTRAL_API_KEY: mistralApiKey,
     OPENROUTER_API_KEY: openRouterApiKey,
     TARGETS: targets,
-    PRIMARY_MODEL: openRouterModels[0] || '',
-    FALLBACK_MODELS: openRouterModels.slice(1),
     MAX_INPUT_CHARS: readInteger('TSUN_AI_MAX_INPUT_CHARS', 1500, 100, 10000),
     MAX_OUTPUT_TOKENS: readInteger('TSUN_AI_MAX_OUTPUT_TOKENS', 300, 50, 2000),
     TEMPERATURE: 0.85,
     REQUEST_TIMEOUT_MS: readInteger('TSUN_AI_REQUEST_TIMEOUT_MS', 12000, 1000, 30000),
-    TOTAL_DEADLINE_MS: readInteger('TSUN_AI_TOTAL_DEADLINE_MS', 25000, 5000, 60000),
+    TOTAL_DEADLINE_MS: readInteger('TSUN_AI_TOTAL_DEADLINE_MS', 45000, 5000, 60000),
     USER_COOLDOWN_MS: readInteger('TSUN_AI_USER_COOLDOWN_MS', 3000, 0, 300000),
     SESSION_TTL_MS: readInteger('TSUN_AI_SESSION_TTL_MS', 1800000, 60000, 86400000),
     SESSION_MAX_MESSAGES: readInteger('TSUN_AI_SESSION_MAX_MESSAGES', 12, 2, 100),

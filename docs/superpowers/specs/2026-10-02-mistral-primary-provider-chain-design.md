@@ -12,7 +12,6 @@ The default ordered target chain is:
 2. Mistral `ministral-8b-2512`
 3. OpenRouter `stealth/space-bunny-alpha`
 4. OpenRouter `nvidia/nemotron-3-ultra-550b-a55b:free`
-5. OpenRouter `inclusionai/ling-3.0-flash-fin:free`
 
 Each target is represented explicitly as `{ provider, model }`. Provider selection must never be inferred from the model name.
 
@@ -25,7 +24,7 @@ The AI feature is configured when guild IDs, channel IDs, and at least one provi
 Defaults:
 
 - `TSUN_AI_MISTRAL_MODELS=ministral-14b-2512,ministral-8b-2512`
-- `TSUN_AI_OPENROUTER_MODELS=stealth/space-bunny-alpha,nvidia/nemotron-3-ultra-550b-a55b:free,inclusionai/ling-3.0-flash-fin:free`
+- `TSUN_AI_OPENROUTER_MODELS=stealth/space-bunny-alpha,nvidia/nemotron-3-ultra-550b-a55b:free`
 - `TSUN_AI_MISTRAL_MIN_START_INTERVAL_MS=2100`
 
 The previous `TSUN_AI_PRIMARY_MODEL` and `TSUN_AI_FALLBACK_MODELS` variables are replaced in the documented configuration. They are not silently mixed into the new chain because ambiguous cross-provider model ownership is unsafe.
@@ -83,7 +82,7 @@ AI-client tests cover:
 
 - Mistral endpoint, bearer header, request body, response, and usage normalization;
 - OpenRouter endpoint, profiles, and quota checks;
-- exact five-target default ordering;
+- exact four-target default ordering;
 - Mistral retryable failure to second Mistral target;
 - Mistral exhaustion to OpenRouter;
 - provider-scoped authentication skipping;

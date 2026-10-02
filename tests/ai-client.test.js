@@ -354,6 +354,5 @@ test('exports target keys and explicit profiles for configured OpenRouter models
   assert.deepEqual(Object.keys(MODEL_PROFILES), [
     'stealth/space-bunny-alpha',
     'nvidia/nemotron-3-ultra-550b-a55b:free',
-    'inclusionai/ling-3.0-flash-fin:free',
   ]);
 });
